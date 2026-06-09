@@ -268,24 +268,21 @@ public class NoteDAOImpl implements NoteDAO {
 
     @Override
     public int getRangEleve(Long eleveId, Long classeId, int trimestre) throws SQLException {
-        // Rang = nombre d'élèves dans la même classe ayant une moyenne >= à cet élève + 1
         String sql =
-            "SELECT COUNT(*) + 1 AS rang FROM (" +
-            "  SELECT n.eleve_id, SUM(n.notes_valeur * n.coefficient) / SUM(n.coefficient) AS moy" +
+            "SELECT rang FROM (" +
+            "  SELECT n.eleve_id, " +
+            "    RANK() OVER (ORDER BY SUM(n.notes_valeur * n.coefficient) / SUM(n.coefficient) DESC) AS rang" +
             "  FROM note_eleve n JOIN eleve e ON n.eleve_id = e.id" +
             "  WHERE e.classe_id = ? AND n.trimestre = ?" +
             "  GROUP BY n.eleve_id" +
-            ") AS moyennes WHERE moy > (" +
-            "  SELECT SUM(notes_valeur * coefficient) / SUM(coefficient) FROM note_eleve" +
-            "  WHERE eleve_id = ? AND trimestre = ?)";
+            ") rankings WHERE eleve_id = ?";
         try (Connection con = DBConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setLong(1, classeId);
             ps.setInt(2, trimestre);
             ps.setLong(3, eleveId);
-            ps.setInt(4, trimestre);
             try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? rs.getInt("rang") : 1;
+                return rs.next() ? rs.getInt("rang") : 0;
             }
         }
     }
