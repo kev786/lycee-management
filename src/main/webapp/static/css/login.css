@@ -1,0 +1,109 @@
+/* Login Specific Styles */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap');
+
+.auth-body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: #f8f9ff;
+}
+
+.bg-pattern {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuCjBddEy4SdFsAf5_QkxbF2mM2rhVz7bMBDs96x-BCr3v1TPcT-xwy9bUgUkQGiP3_uX2FCtMb-49Xwjzbx9JRQL7NM9ebZgQM6MCxvfJvTPEvfHl3J4jX455j3lERu9MPOc2zEV5peYzQOgoYV9_B5ma61GcjLBA43mdcHk5n-YiDp_UjpTjyvGIgo6aSki_099nZtWnQSnIce_z0V8dB8K6jNP7Yili1QyfIpI70bvIKTR6ULDBG1AF_1VbrNOI0wBDwterwOww);
+    background-size: cover;
+    background-position: center;
+}
+
+.bg-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: rgba(0, 32, 69, 0.2);
+    backdrop-filter: blur(4px);
+}
+
+.login-card {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 480px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 40px;
+    border-radius: 1rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo-circle {
+    width: 80px;
+    height: 80px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    box-shadow: var(--shadow-md);
+    color: white;
+}
+
+.decoration-blur-1 {
+    position: absolute;
+    bottom: -128px;
+    right: -128px;
+    width: 256px;
+    height: 256px;
+    background: rgba(214, 227, 255, 0.1);
+    filter: blur(100px);
+    z-index: 5;
+    border-radius: 50%;
+}
+
+.decoration-blur-2 {
+    position: absolute;
+    top: -192px;
+    left: -192px;
+    width: 384px;
+    height: 384px;
+    background: rgba(210, 228, 255, 0.1);
+    filter: blur(120px);
+    z-index: 5;
+    border-radius: 50%;
+}
+
+.footer-auth {
+    position: relative;
+    z-index: 10;
+    margin-top: 24px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+}
+
+.footer-links {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+.footer-links a {
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.footer-links a:hover {
+    color: var(--on-primary-container);
+}

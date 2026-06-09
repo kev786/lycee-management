@@ -1,0 +1,50 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+*.jar
+*.war
+*.ear
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+*.swp
+*.swo
+*~
+
+# Eclipse
+bin/
+*.launch
+
+# NetBeans
+nb-configuration.xml
+nbactions.xml
+
+# OS
+.DS_Store
+Thumbs.db
+*.~
+
+# Logs
+*.log
+log/
+
+# Database credentials
+#src/main/resources/db.properties
+
+# Environment files
+.env
+.env.local
+
+# Server
+/opt/apache-tomcat-11.0.21/
