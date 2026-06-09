@@ -2,7 +2,9 @@ package com.lycee.servlet;
 
 import com.lycee.dao.UtilisateurDAO;
 import com.lycee.dao.impl.UtilisateurDAOImpl;
+import com.lycee.model.ParametresEtablissement;
 import com.lycee.model.Utilisateur;
+import com.lycee.service.ParametreService;
 import com.lycee.util.Constants;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -24,6 +26,7 @@ public class LoginServlet extends HttpServlet {
 
     private static final Logger LOG = LoggerFactory.getLogger(LoginServlet.class);
     private final transient UtilisateurDAO utilisateurDAO = new UtilisateurDAOImpl();
+    private final transient ParametreService parametreService = new ParametreService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -50,11 +53,17 @@ public class LoginServlet extends HttpServlet {
                 return;
             }
 
-            req.getRequestDispatcher(VUE_LOGIN).forward(req, resp);
+            forwardLogin(req, resp);
         } catch (Exception e) {
             LOG.error("Erreur dans doGet login", e);
             sendErrorSafe(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private void forwardLogin(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        req.setAttribute("etablissement", parametreService.charger());
+        req.getRequestDispatcher(VUE_LOGIN).forward(req, resp);
     }
 
     private void sendErrorSafe(HttpServletResponse resp, int code) {
@@ -114,7 +123,7 @@ public class LoginServlet extends HttpServlet {
 
         if (login == null || motPasse == null || login.isBlank() || motPasse.isBlank()) {
             req.setAttribute(ATTR_ERREUR, "Veuillez remplir tous les champs.");
-            req.getRequestDispatcher(VUE_LOGIN).forward(req, resp);
+            forwardLogin(req, resp);
             return;
         }
 
@@ -123,12 +132,12 @@ public class LoginServlet extends HttpServlet {
             String roleAttendu = mapRoleFormulaire(roleForm);
             if (roleAttendu == null) {
                 req.setAttribute(ATTR_ERREUR, "Rôle invalide.");
-                req.getRequestDispatcher(VUE_LOGIN).forward(req, resp);
+                forwardLogin(req, resp);
                 return;
             }
             if (u != null && !roleAttendu.equals(u.getRole())) {
                 req.setAttribute(ATTR_ERREUR, "Le rôle sélectionné ne correspond pas à votre compte.");
-                req.getRequestDispatcher(VUE_LOGIN).forward(req, resp);
+                forwardLogin(req, resp);
                 return;
             }
             if (u != null && org.mindrot.jbcrypt.BCrypt.checkpw(motPasse, u.getPasswordHache())) {
@@ -140,12 +149,12 @@ public class LoginServlet extends HttpServlet {
                 resp.sendRedirect(req.getContextPath() + "/app/dashboard");
             } else {
                 req.setAttribute(ATTR_ERREUR, "Identifiants incorrects.");
-                req.getRequestDispatcher(VUE_LOGIN).forward(req, resp);
+                forwardLogin(req, resp);
             }
         } catch (java.sql.SQLException e) {
             LOG.error("Erreur SQL lors du login", e);
             req.setAttribute(ATTR_ERREUR, "Erreur serveur. Veuillez réessayer plus tard.");
-            req.getRequestDispatcher(VUE_LOGIN).forward(req, resp);
+            forwardLogin(req, resp);
         }
     }
 

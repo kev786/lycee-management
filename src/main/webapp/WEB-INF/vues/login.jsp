@@ -20,10 +20,25 @@
             <!-- Logo and Header -->
             <div class="text-center mb-xl">
                 <div class="logo-circle">
-                    <span class="material-symbols-outlined" style="font-size: 40px;">school</span>
+                    <c:choose>
+                        <c:when test="${not empty etablissement.logoFilename}">
+                            <img src="${pageContext.request.contextPath}/assets/${etablissement.logoFilename}"
+                                 alt="Logo" style="max-height:40px; max-width:40px;"/>
+                        </c:when>
+                        <c:otherwise>
+                            <span class="material-symbols-outlined" style="font-size: 40px;">school</span>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
-                <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--primary); letter-spacing: -0.02em;">Lycée Admin</h1>
+                <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--primary); letter-spacing: -0.02em;">
+                    <c:out value="${not empty etablissement.etablissement ? etablissement.etablissement : 'Lycée Admin'}"/>
+                </h1>
                 <p style="font-size: 0.875rem; color: var(--on-surface-variant); margin-top: 4px; font-weight: 500;">Portail institutionnel de gestion</p>
+                <c:if test="${not empty etablissement.devise}">
+                    <p style="font-size: 0.75rem; color: var(--on-surface-variant); margin-top: 2px; font-style: italic;">
+                        <c:out value="${etablissement.devise}"/>
+                    </p>
+                </c:if>
             </div>
 
             <c:if test="${not empty erreur}">

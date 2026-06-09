@@ -12,15 +12,22 @@
     </p>
 </div>
 
+<c:if test="${not empty erreur}">
+    <div class="alert alert-error" style="margin-bottom:16px;">${erreur}</div>
+</c:if>
+<c:if test="${param.msg eq 'enregistre'}">
+    <div class="alert alert-success" style="margin-bottom:16px;">Paramètres enregistrés avec succès.</div>
+</c:if>
+
 <form action="${pageContext.request.contextPath}/app/parametres" method="post" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:24px;">
 
     <div class="card" style="padding:24px;">
         <h3 style="font-size:18px; font-weight:700; color:var(--primary); margin-bottom:20px;">Informations générales</h3>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
             <div class="input-group">
-                <label class="label" for="nomEtablissement">Nom de l'établissement</label>
-                <input class="input-field" id="nomEtablissement" name="nomEtablissement" type="text"
-                       value="${etablissement.nomEtablissement}" required/>
+                <label class="label" for="etablissement">Nom de l'établissement</label>
+                <input class="input-field" id="etablissement" name="etablissement" type="text"
+                       value="${etablissement.etablissement}" required/>
             </div>
             <div class="input-group">
                 <label class="label" for="anneeScolaire">Année scolaire</label>
@@ -28,8 +35,24 @@
                        value="${etablissement.anneeScolaire}" required/>
             </div>
             <div class="input-group">
+                <label class="label" for="devise">Devise</label>
+                <input class="input-field" id="devise" name="devise" type="text" value="${etablissement.devise}"/>
+            </div>
+            <div class="input-group">
                 <label class="label" for="ville">Ville</label>
                 <input class="input-field" id="ville" name="ville" type="text" value="${etablissement.ville}"/>
+            </div>
+            <div class="input-group">
+                <label class="label" for="telephone">Téléphone</label>
+                <input class="input-field" id="telephone" name="telephone" type="text" value="${etablissement.telephone}"/>
+            </div>
+            <div class="input-group">
+                <label class="label" for="email">Email</label>
+                <input class="input-field" id="email" name="email" type="email" value="${etablissement.email}"/>
+            </div>
+            <div class="input-group">
+                <label class="label" for="siteWeb">Site web</label>
+                <input class="input-field" id="siteWeb" name="siteWeb" type="text" value="${etablissement.siteWeb}"/>
             </div>
         </div>
     </div>
@@ -60,7 +83,7 @@
         <div class="card" style="padding:24px;">
             <h3 style="font-size:18px; font-weight:700; color:var(--primary); margin-bottom:16px;">Logo</h3>
             <c:if test="${not empty etablissement.logoFilename}">
-                <img src="${pageContext.request.contextPath}/app/assets/${etablissement.logoFilename}"
+                <img src="${pageContext.request.contextPath}/assets/${etablissement.logoFilename}"
                      alt="Logo" style="max-height:80px; margin-bottom:12px;"/>
             </c:if>
             <input class="input-field" name="logo" type="file" accept="image/*"/>
@@ -75,6 +98,9 @@
                 <c:when test="${twilioConfigure}"><span class="badge-ok">Configuré</span></c:when>
                 <c:otherwise><span class="badge-warn">Simulation (logs)</span></c:otherwise>
             </c:choose>
+            <p style="font-size:12px; color:var(--on-surface-variant); margin-top:8px;">
+                Configuré via les variables d'environnement du serveur.
+            </p>
         </div>
     </div>
 

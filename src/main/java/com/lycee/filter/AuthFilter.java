@@ -3,6 +3,8 @@ package com.lycee.filter;
 import java.io.IOException;
 import java.util.Set;
 
+import com.lycee.model.ParametresEtablissement;
+import com.lycee.service.ParametreService;
 import com.lycee.util.Constants;
 
 import jakarta.servlet.Filter;
@@ -24,8 +26,7 @@ public class AuthFilter implements Filter {
     /** Réservé à l'Admin */
     private static final Set<String> ADMIN_PATHS = Set.of(
         "/app/utilisateurs",
-        "/app/parametres",
-        "/app/assets"
+        "/app/parametres"
     );
 
     /** Admin et Censeur uniquement (bloqué pour Surveillant) */
@@ -36,12 +37,17 @@ public class AuthFilter implements Filter {
         "/app/eleves/export-csv"
     );
 
+    private final transient ParametreService parametreService = new ParametreService();
+
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse resp = (HttpServletResponse) response;
+
+        req.setAttribute("etablissement", parametreService.charger());
+
         HttpSession session = req.getSession(false);
 
         String uri = req.getRequestURI().substring(req.getContextPath().length());

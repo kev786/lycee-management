@@ -47,13 +47,17 @@ public class ParametreServlet extends HttpServlet {
         try {
             ParametresEtablissement existant = parametreService.charger();
             ParametresEtablissement p = new ParametresEtablissement();
-            p.setNomEtablissement(ValidationUtil.param(req, "nomEtablissement"));
+            p.setEtablissement(ValidationUtil.param(req, "etablissement"));
             p.setAnneeScolaire(ValidationUtil.param(req, "anneeScolaire"));
-            p.setEntetePdf(ValidationUtil.param(req, "entetePdf"));
-            p.setDelegation(ValidationUtil.param(req, "delegation"));
+            p.setDevise(ValidationUtil.param(req, "devise"));
+            p.setVille(ValidationUtil.param(req, "ville"));
+            p.setTelephone(ValidationUtil.param(req, "telephone"));
+            p.setEmail(ValidationUtil.param(req, "email"));
+            p.setSiteWeb(ValidationUtil.param(req, "siteWeb"));
             p.setRepublique(ValidationUtil.param(req, "republique"));
             p.setMinistere(ValidationUtil.param(req, "ministere"));
-            p.setVille(ValidationUtil.param(req, "ville"));
+            p.setDelegation(ValidationUtil.param(req, "delegation"));
+            p.setEntetePdf(ValidationUtil.param(req, "entetePdf"));
             p.setFiligraneLogo("on".equals(req.getParameter("filigraneLogo")));
 
             String logoFilename = traiterLogo(req, existant.getLogoFilename());

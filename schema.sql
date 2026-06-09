@@ -1,768 +1,701 @@
 -- ============================================================
 -- SCHEMA : Système de Gestion de Lycée
--- Base : MySQL 8.4.8
+-- Base    : MySQL 8.4
+-- Projet  : Lycée Management — Jakarta EE 11 / Tomcat 11
 -- ============================================================
-CREATE DATABASE IF NOT EXISTS lycee_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE DATABASE IF NOT EXISTS lycee_db
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
 
 USE lycee_db;
 
 -- ============================================================
--- TABLE : classe
+-- Suppression des tables existantes (ordre respectant les FK)
 -- ============================================================
-CREATE TABLE IF NOT EXISTS classe (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    niveau VARCHAR(20) NOT NULL,
-    serie VARCHAR(20) NOT NULL,
-    effectif_max INT DEFAULT 60,
-    prof_principal VARCHAR(100),
+DROP TABLE IF EXISTS notification;
+DROP TABLE IF EXISTS parametre;
+DROP TABLE IF EXISTS absence;
+DROP TABLE IF EXISTS note_eleve;
+DROP TABLE IF EXISTS eleve;
+DROP TABLE IF EXISTS classe;
+DROP TABLE IF EXISTS utilisateurs;
+
+-- ============================================================
+-- TABLE : classe
+-- 1er cycle (6iem-3iem) : sections A/B/C
+-- 2nd cycle (2nde-Tle)  : séries A (Littéraire), C (Maths), D (Sciences)
+-- ============================================================
+CREATE TABLE classe (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    niveau          VARCHAR(20)  NOT NULL,
+    serie           VARCHAR(20)  NOT NULL,
+    effectif_max    INT          DEFAULT 60,
+    prof_principal  VARCHAR(100),
     salle_principale VARCHAR(20),
-    annee_scolaire VARCHAR(9) NOT NULL COMMENT 'ex: 2024-2025'
+    annee_scolaire  VARCHAR(9)   NOT NULL COMMENT 'ex: 2024-2025'
 ) ENGINE = InnoDB;
 
 -- ============================================================
--- TABLE : Eleve
+-- TABLE : eleve
 -- ============================================================
-CREATE TABLE IF NOT EXISTS eleve (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    matricule VARCHAR(20) NOT NULL UNIQUE,
-    nom VARCHAR(80) NOT NULL,
-    prenom VARCHAR(80) NOT NULL,
-    date_naissance DATE,
-    classe_id BIGINT NOT NULL,
-    nom_parent VARCHAR(120),
-    tel_parent VARCHAR(20),
-    email_parent VARCHAR(120),
-    photo_filename VARCHAR(255),
-    sexe CHAR(1) DEFAULT 'M' COMMENT 'M ou F',
-    CONSTRAINT fk_eleve_classe FOREIGN KEY (classe_id) REFERENCES classe (id) ON DELETE RESTRICT
+CREATE TABLE eleve (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    matricule       VARCHAR(20)  NOT NULL UNIQUE,
+    nom             VARCHAR(80)  NOT NULL,
+    prenom          VARCHAR(80)  NOT NULL,
+    date_naissance  DATE,
+    classe_id       BIGINT       NOT NULL,
+    nom_parent      VARCHAR(120),
+    tel_parent      VARCHAR(20),
+    email_parent    VARCHAR(120),
+    photo_filename  VARCHAR(255),
+    sexe            CHAR(1)      DEFAULT 'M' COMMENT 'M ou F',
+    CONSTRAINT fk_eleve_classe
+        FOREIGN KEY (classe_id) REFERENCES classe(id)
+        ON DELETE RESTRICT
 ) ENGINE = InnoDB;
 
 -- ============================================================
 -- TABLE : note_eleve
 -- ============================================================
-CREATE TABLE IF NOT EXISTS note_eleve (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    eleve_id BIGINT NOT NULL,
-    matiere VARCHAR(60) NOT NULL,
-    coefficient INT NOT NULL DEFAULT 1,
-    notes_valeur DECIMAL(4, 2) NOT NULL,
-    trimestre TINYINT NOT NULL CHECK (trimestre IN (1, 2, 3)),
-    prof_saisie VARCHAR(100),
-    CONSTRAINT fk_note_eleve FOREIGN KEY (eleve_id) REFERENCES eleve (id) ON DELETE CASCADE
+CREATE TABLE note_eleve (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    eleve_id        BIGINT       NOT NULL,
+    matiere         VARCHAR(60)  NOT NULL,
+    coefficient     INT          NOT NULL DEFAULT 1,
+    notes_valeur    DECIMAL(4,2) NOT NULL,
+    trimestre       TINYINT      NOT NULL CHECK (trimestre IN (1,2,3)),
+    prof_saisie     VARCHAR(100),
+    CONSTRAINT fk_note_eleve
+        FOREIGN KEY (eleve_id) REFERENCES eleve(id)
+        ON DELETE CASCADE
 ) ENGINE = InnoDB;
 
 -- ============================================================
 -- TABLE : absence
 -- ============================================================
-CREATE TABLE IF NOT EXISTS absence (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    eleve_id BIGINT NOT NULL,
-    date_absence DATE NOT NULL,
-    duree_heures INT DEFAULT 1,
-    matiere VARCHAR(60),
-    justifiee BOOLEAN DEFAULT FALSE,
-    motif TEXT,
-    CONSTRAINT fk_absence_eleve FOREIGN KEY (eleve_id) REFERENCES eleve (id) ON DELETE CASCADE
+CREATE TABLE absence (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    eleve_id        BIGINT       NOT NULL,
+    date_absence    DATE         NOT NULL,
+    duree_heures    INT          DEFAULT 1,
+    matiere         VARCHAR(60),
+    justifiee       BOOLEAN      DEFAULT FALSE,
+    motif           TEXT,
+    CONSTRAINT fk_absence_eleve
+        FOREIGN KEY (eleve_id) REFERENCES eleve(id)
+        ON DELETE CASCADE
 ) ENGINE = InnoDB;
 
 -- ============================================================
 -- TABLE : utilisateurs
 -- ============================================================
-CREATE TABLE IF NOT EXISTS utilisateurs (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    login VARCHAR(60) NOT NULL UNIQUE,
-    password_hache VARCHAR(255) NOT NULL COMMENT 'BCrypt hash',
-    role ENUM('Admin', 'Censeur', 'Surveillant') NOT NULL
+CREATE TABLE utilisateurs (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    login           VARCHAR(60)  NOT NULL UNIQUE,
+    password_hache  VARCHAR(255) NOT NULL COMMENT 'BCrypt hash',
+    role            ENUM('Admin','Censeur','Surveillant') NOT NULL
 ) ENGINE = InnoDB;
 
 -- ============================================================
--- DONNÉES DE DÉMONSTRATION : classe (20 lignes)
+-- TABLE : parametre (configuration établissement, ligne unique)
 -- ============================================================
-INSERT INTO
-    classe (
-        niveau,
-        serie,
-        effectif_max,
-        prof_principal,
-        salle_principale,
-        annee_scolaire
-    )
-VALUES
-    (
-        '3iem',
-        'A',
-        50,
-        'M. Nkomo Jean',
-        'A01',
-        '2024-2025'
-    ),
-    (
-        '3iem',
-        'C',
-        50,
-        'Mme Bella Marie',
-        'A02',
-        '2024-2025'
-    ),
-    (
-        '3iem',
-        'D',
-        50,
-        'M. Fouda Paul',
-        'A03',
-        '2024-2025'
-    ),
-    (
-        '2nde',
-        'A',
-        55,
-        'Mme Ngono Claire',
-        'B01',
-        '2024-2025'
-    ),
-    (
-        '2nde',
-        'C',
-        55,
-        'M. Mbarga Pierre',
-        'B02',
-        '2024-2025'
-    ),
-    (
-        '2nde',
-        'D',
-        55,
-        'Mme Ateba Rose',
-        'B03',
-        '2024-2025'
-    ),
-    (
-        'Tle',
-        'A',
-        60,
-        'M. Owona Serge',
-        'C01',
-        '2024-2025'
-    ),
-    (
-        'Tle',
-        'C',
-        60,
-        'Mme Essama Diane',
-        'C02',
-        '2024-2025'
-    ),
-    (
-        'Tle',
-        'D',
-        60,
-        'M. Biyong Jules',
-        'C03',
-        '2024-2025'
-    ),
-    (
-        '3iem',
-        'A',
-        50,
-        'M. Ondoa Alexis',
-        'A04',
-        '2024-2025'
-    ),
-    (
-        '3iem',
-        'C',
-        50,
-        'Mme Messi Hortense',
-        'A05',
-        '2024-2025'
-    ),
-    (
-        '2nde',
-        'A',
-        55,
-        'M. Abate François',
-        'B04',
-        '2024-2025'
-    ),
-    (
-        '2nde',
-        'C',
-        55,
-        'Mme Nguema Patricia',
-        'B05',
-        '2024-2025'
-    ),
-    (
-        'Tle',
-        'A',
-        60,
-        'M. Abena Gustave',
-        'C04',
-        '2024-2025'
-    ),
-    (
-        'Tle',
-        'C',
-        60,
-        'Mme Eboa Sandrine',
-        'C05',
-        '2024-2025'
-    ),
-    (
-        '3iem',
-        'D',
-        50,
-        'M. Mvondo Eric',
-        'A06',
-        '2024-2025'
-    ),
-    (
-        '2nde',
-        'D',
-        55,
-        'Mme Ayolo Brigitte',
-        'B06',
-        '2024-2025'
-    ),
-    (
-        'Tle',
-        'D',
-        60,
-        'M. Noa Clement',
-        'C06',
-        '2024-2025'
-    ),
-    (
-        '3iem',
-        'A',
-        50,
-        'Mme Bongo Irene',
-        'A07',
-        '2024-2025'
-    ),
-    (
-        '2nde',
-        'C',
-        55,
-        'M. Engonga Yves',
-        'B07',
-        '2024-2025'
-    );
-
--- ============================================================
--- DONNÉES DE DÉMONSTRATION : eleve (20 lignes)
--- ============================================================
-INSERT INTO
-    eleve (
-        matricule,
-        nom,
-        prenom,
-        date_naissance,
-        classe_id,
-        nom_parent,
-        tel_parent,
-        email_parent,
-        photo_filename,
-        sexe
-    )
-VALUES
-    (
-        'LYC2024001',
-        'Nkomo',
-        'Alice',
-        '2008-03-12',
-        1,
-        'Nkomo Bernard',
-        '+237699001001',
-        'nkomo.b@email.cm',
-        NULL,
-        'F'
-    ),
-    (
-        'LYC2024002',
-        'Bella',
-        'Eric',
-        '2007-07-22',
-        1,
-        'Bella Joseph',
-        '+237699001002',
-        'bella.j@email.cm',
-        NULL,
-        'M'
-    ),
-    (
-        'LYC2024003',
-        'Fouda',
-        'Marie',
-        '2008-01-05',
-        2,
-        'Fouda Célestine',
-        '+237699001003',
-        'fouda.c@email.cm',
-        NULL,
-        'F'
-    ),
-    (
-        'LYC2024004',
-        'Ngono',
-        'Paul',
-        '2007-11-30',
-        2,
-        'Ngono Théodore',
-        '+237699001004',
-        'ngono.t@email.cm',
-        NULL,
-        'M'
-    ),
-    (
-        'LYC2024005',
-        'Mbarga',
-        'Sophie',
-        '2006-05-14',
-        4,
-        'Mbarga Hélène',
-        '+237699001005',
-        'mbarga.h@email.cm',
-        NULL,
-        'F'
-    ),
-    (
-        'LYC2024006',
-        'Ateba',
-        'Luc',
-        '2006-08-18',
-        4,
-        'Ateba Gérard',
-        '+237699001006',
-        'ateba.g@email.cm',
-        NULL,
-        'M'
-    ),
-    (
-        'LYC2024007',
-        'Owona',
-        'Julie',
-        '2005-02-25',
-        7,
-        'Owona Marcel',
-        '+237699001007',
-        'owona.m@email.cm',
-        NULL,
-        'F'
-    ),
-    (
-        'LYC2024008',
-        'Essama',
-        'Kevin',
-        '2005-12-03',
-        7,
-        'Essama Victoire',
-        '+237699001008',
-        'essama.v@email.cm',
-        NULL,
-        'M'
-    ),
-    (
-        'LYC2024009',
-        'Biyong',
-        'Laure',
-        '2005-06-17',
-        8,
-        'Biyong Albert',
-        '+237699001009',
-        'biyong.a@email.cm',
-        NULL,
-        'F'
-    ),
-    (
-        'LYC2024010',
-        'Ondoa',
-        'Max',
-        '2008-09-09',
-        3,
-        'Ondoa Jeanne',
-        '+237699001010',
-        'ondoa.j@email.cm',
-        NULL,
-        'M'
-    ),
-    (
-        'LYC2024011',
-        'Messi',
-        'Chloe',
-        '2007-04-20',
-        5,
-        'Messi Robert',
-        '+237699001011',
-        'messi.r@email.cm',
-        NULL,
-        'F'
-    ),
-    (
-        'LYC2024012',
-        'Abate',
-        'Nathan',
-        '2006-10-11',
-        5,
-        'Abate Suzanne',
-        '+237699001012',
-        'abate.s@email.cm',
-        NULL,
-        'M'
-    ),
-    (
-        'LYC2024013',
-        'Nguema',
-        'Iris',
-        '2006-03-28',
-        6,
-        'Nguema Patrick',
-        '+237699001013',
-        'nguema.p@email.cm',
-        NULL,
-        'F'
-    ),
-    (
-        'LYC2024014',
-        'Abena',
-        'Tom',
-        '2005-01-14',
-        9,
-        'Abena Marguerite',
-        '+237699001014',
-        'abena.m@email.cm',
-        NULL,
-        'M'
-    ),
-    (
-        'LYC2024015',
-        'Eboa',
-        'Diana',
-        '2005-08-07',
-        9,
-        'Eboa Ferdinand',
-        '+237699001015',
-        'eboa.f@email.cm',
-        NULL,
-        'F'
-    ),
-    (
-        'LYC2024016',
-        'Mvondo',
-        'Ryan',
-        '2007-05-31',
-        3,
-        'Mvondo Clarisse',
-        '+237699001016',
-        'mvondo.c@email.cm',
-        NULL,
-        'M'
-    ),
-    (
-        'LYC2024017',
-        'Ayolo',
-        'Nina',
-        '2006-07-19',
-        6,
-        'Ayolo Thomas',
-        '+237699001017',
-        'ayolo.t@email.cm',
-        NULL,
-        'F'
-    ),
-    (
-        'LYC2024018',
-        'Noa',
-        'Steve',
-        '2005-11-23',
-        8,
-        'Noa Cécile',
-        '+237699001018',
-        'noa.c@email.cm',
-        NULL,
-        'M'
-    ),
-    (
-        'LYC2024019',
-        'Bongo',
-        'Lea',
-        '2008-02-16',
-        1,
-        'Bongo Michel',
-        '+237699001019',
-        'bongo.m@email.cm',
-        NULL,
-        'F'
-    ),
-    (
-        'LYC2024020',
-        'Engonga',
-        'Joel',
-        '2007-06-04',
-        2,
-        'Engonga Sylvie',
-        '+237699001020',
-        'engonga.s@email.cm',
-        NULL,
-        'M'
-    );
-
--- ============================================================
--- DONNÉES DE DÉMONSTRATION : note_eleve (20 lignes)
--- ============================================================
-INSERT INTO
-    note_eleve (
-        eleve_id,
-        matiere,
-        coefficient,
-        notes_valeur,
-        trimestre,
-        prof_saisie
-    )
-VALUES
-    (1, 'Mathématiques', 4, 14.50, 1, 'M. Fouda'),
-    (1, 'Français', 4, 12.00, 1, 'Mme Bella'),
-    (2, 'Mathématiques', 4, 16.25, 1, 'M. Fouda'),
-    (2, 'Sciences', 3, 13.00, 1, 'M. Ondoa'),
-    (3, 'Anglais', 3, 11.50, 1, 'Mme Ngono'),
-    (3, 'Histoire-Géo', 2, 09.75, 1, 'M. Mbarga'),
-    (4, 'Mathématiques', 4, 07.50, 1, 'M. Fouda'),
-    (4, 'Physique-Chimie', 3, 08.00, 1, 'M. Biyong'),
-    (5, 'Mathématiques', 4, 18.00, 2, 'M. Fouda'),
-    (5, 'Français', 4, 15.50, 2, 'Mme Bella'),
-    (6, 'Informatique', 2, 17.00, 2, 'M. Owona'),
-    (6, 'Sciences', 3, 14.00, 2, 'M. Ondoa'),
-    (7, 'Philosophie', 3, 11.00, 2, 'Mme Essama'),
-    (7, 'Mathématiques', 4, 19.00, 2, 'M. Fouda'),
-    (8, 'Histoire-Géo', 2, 13.50, 3, 'M. Mbarga'),
-    (8, 'Anglais', 3, 16.00, 3, 'Mme Ngono'),
-    (9, 'Physique-Chimie', 3, 10.25, 3, 'M. Biyong'),
-    (10, 'Mathématiques', 4, 05.50, 3, 'M. Fouda'),
-    (11, 'Français', 4, 14.75, 1, 'Mme Bella'),
-    (12, 'Sciences', 3, 12.50, 1, 'M. Ondoa');
-
--- ============================================================
--- DONNÉES DE DÉMONSTRATION : absence (20 lignes)
--- ============================================================
-INSERT INTO
-    absence (
-        eleve_id,
-        date_absence,
-        duree_heures,
-        matiere,
-        justifiee,
-        motif
-    )
-VALUES
-    (1, '2024-10-05', 2, 'Mathématiques', FALSE, NULL),
-    (2, '2024-10-07', 1, 'Français', TRUE, 'Maladie'),
-    (3, '2024-10-10', 3, 'Anglais', FALSE, NULL),
-    (
-        4,
-        '2024-10-12',
-        2,
-        'Physique-Chimie',
-        FALSE,
-        NULL
-    ),
-    (
-        5,
-        '2024-11-03',
-        1,
-        'Français',
-        TRUE,
-        'Convocation'
-    ),
-    (6, '2024-11-05', 4, 'Informatique', FALSE, NULL),
-    (7, '2024-11-08', 2, 'Philosophie', FALSE, NULL),
-    (
-        8,
-        '2024-11-12',
-        1,
-        'Anglais',
-        TRUE,
-        'Décès familial'
-    ),
-    (
-        9,
-        '2024-11-15',
-        3,
-        'Physique-Chimie',
-        FALSE,
-        NULL
-    ),
-    (10, '2024-11-18', 2, 'Mathématiques', FALSE, NULL),
-    (11, '2024-12-02', 1, 'Français', TRUE, 'Maladie'),
-    (12, '2024-12-05', 2, 'Sciences', FALSE, NULL),
-    (13, '2024-12-09', 3, 'Mathématiques', FALSE, NULL),
-    (
-        14,
-        '2024-12-11',
-        1,
-        'Philosophie',
-        TRUE,
-        'Convocation admin'
-    ),
-    (15, '2024-12-14', 4, 'Histoire-Géo', FALSE, NULL),
-    (1, '2025-01-08', 2, 'Français', FALSE, NULL),
-    (3, '2025-01-10', 1, 'Mathématiques', FALSE, NULL),
-    (7, '2025-01-14', 3, 'Mathématiques', FALSE, NULL),
-    (
-        10,
-        '2025-01-16',
-        2,
-        'Physique-Chimie',
-        FALSE,
-        NULL
-    ),
-    (16, '2025-01-20', 1, 'Anglais', TRUE, 'Maladie');
-
--- ============================================================
--- DONNÉES DE DÉMONSTRATION : utilisateurs (20 lignes)
--- Mots de passe en clair : Admin123!, Censeur1!, Surv001!  etc.
--- (stocker en BCrypt à l'initialisation via l'application)
--- Pour les tests le hash ci-dessous correspond à "Password1!"
--- $2a$12$hashed... est un placeholder ; l'appli doit re-hacher
--- ============================================================
-INSERT INTO
-    utilisateurs (login, password_hache, role)
-VALUES
-    (
-        'admin',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Admin'
-    ),
-    (
-        'censeur1',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Censeur'
-    ),
-    (
-        'surveillant1',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Surveillant'
-    ),
-    (
-        'surveillant2',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Surveillant'
-    ),
-    (
-        'censeur2',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Censeur'
-    ),
-    (
-        'admin2',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Admin'
-    ),
-    (
-        'surveillant3',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Surveillant'
-    ),
-    (
-        'surveillant4',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Surveillant'
-    ),
-    (
-        'censeur3',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Censeur'
-    ),
-    (
-        'surveillant5',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Surveillant'
-    ),
-    (
-        'surveillant6',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Surveillant'
-    ),
-    (
-        'censeur4',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Censeur'
-    ),
-    (
-        'surveillant7',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Surveillant'
-    ),
-    (
-        'surveillant8',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Surveillant'
-    ),
-    (
-        'admin3',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Admin'
-    ),
-    (
-        'censeur5',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Censeur'
-    ),
-    (
-        'surveillant9',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Surveillant'
-    ),
-    (
-        'surveillant10',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Surveillant'
-    ),
-    (
-        'censeur6',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Censeur'
-    ),
-    (
-        'censeur7',
-        '$2a$12$WBFGi3ZkHqb0TJqyMuYHzuGJY8C.b5nBJ9qKc0tPZlpHfME4VrJkO',
-        'Censeur'
-    );
-
--- NOTE: Remplacer les hashes par de vrais hashes BCrypt générés au démarrage.
--- Mot de passe par défaut pour les tests : Password1!
-
--- ============================================================
--- TABLE : parametre (clé/valeur — configuration établissement)
--- ============================================================
-CREATE TABLE IF NOT EXISTS parametre (
-    cle VARCHAR(60) PRIMARY KEY,
-    valeur TEXT
+CREATE TABLE parametre (
+    id              INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    etablissement   VARCHAR(150) NOT NULL DEFAULT '',
+    annee_scolaire  VARCHAR(20)  NOT NULL DEFAULT '',
+    logo_filename   VARCHAR(255) NOT NULL DEFAULT '',
+    devise          VARCHAR(200) NOT NULL DEFAULT '',
+    ville           VARCHAR(100) NOT NULL DEFAULT '',
+    telephone       VARCHAR(20)  NOT NULL DEFAULT '',
+    email           VARCHAR(100) NOT NULL DEFAULT '',
+    site_web        VARCHAR(150) NOT NULL DEFAULT '',
+    republique      VARCHAR(200) NOT NULL DEFAULT '',
+    ministere       VARCHAR(200) NOT NULL DEFAULT '',
+    delegation      VARCHAR(200) NOT NULL DEFAULT '',
+    entete_pdf      TEXT,
+    filigrane_logo  BOOLEAN      NOT NULL DEFAULT FALSE
 ) ENGINE = InnoDB;
 
-INSERT INTO parametre (cle, valeur) VALUES
-    ('nom_etablissement', 'Lycée de Démonstration'),
-    ('annee_scolaire', '2024-2025'),
-    ('entete_pdf', 'RÉPUBLIQUE DU CAMEROUN\nMINISTÈRE DES ENSEIGNEMENTS SECONDAIRES\nDÉLÉGATION RÉGIONALE DU CENTRE'),
-    ('delegation', 'DÉLÉGATION RÉGIONALE DU CENTRE'),
-    ('republique', 'RÉPUBLIQUE DU CAMEROUN'),
-    ('ministere', 'MINISTÈRE DES ENSEIGNEMENTS SECONDAIRES'),
-    ('ville', 'Yaoundé'),
-    ('logo_filename', ''),
-    ('filigrane_logo', 'false')
-ON DUPLICATE KEY UPDATE cle = cle;
-
 -- ============================================================
--- TABLE : notification
+-- TABLE : notification (alertes internes)
 -- ============================================================
-CREATE TABLE IF NOT EXISTS notification (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    role_cible VARCHAR(30) COMMENT 'NULL = tous les rôles',
-    message VARCHAR(500) NOT NULL,
-    lien VARCHAR(255),
-    type VARCHAR(30) DEFAULT 'info',
-    lue BOOLEAN DEFAULT FALSE,
-    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE notification (
+    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    role_cible    VARCHAR(30)  COMMENT 'NULL = tous les rôles',
+    message       VARCHAR(500) NOT NULL,
+    lien          VARCHAR(255),
+    type          VARCHAR(30)  DEFAULT 'info',
+    lue           BOOLEAN      DEFAULT FALSE,
+    date_creation TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 ) ENGINE = InnoDB;
 
--- Migration base existante (si eleve créée sans sexe) :
--- ALTER TABLE eleve ADD COLUMN sexe CHAR(1) DEFAULT 'M' COMMENT 'M ou F' AFTER photo_filename;
+-- ============================================================
+-- DONNÉES DE DÉMONSTRATION
+-- ============================================================
+
+-- ---------------------------------------------------------
+-- 1. Classes (18 classes — tous niveaux confondus)
+-- ---------------------------------------------------------
+INSERT INTO classe (niveau, serie, effectif_max, prof_principal, salle_principale, annee_scolaire) VALUES
+    ('6iem',  'Generale', 30, 'Mme Ngo Berthe',     'F01', '2025-2026'),
+    ('5iem',  'Generale', 30, 'M. Atangana Paul',   'F02', '2025-2026'),
+    ('4iem',  'ALL',      30, 'M. Mbarga Pierre',   'E01', '2025-2026'),
+    ('4iem',  'ESP',      30, 'Mme Bella Marie',    'E02', '2025-2026'),
+    ('4iem',  'CHS',      30, 'M. Fouda Paul',      'E03', '2025-2026'),
+    ('3iem',  'ALL',      30, 'Mme Ngono Claire',   'D01', '2025-2026'),
+    ('3iem',  'ESP',      30, 'M. Nkomo Jean',      'D02', '2025-2026'),
+    ('3iem',  'CHS',      30, 'Mme Bongo Irene',    'D03', '2025-2026'),
+    ('2nde',  'A',        30, 'M. Ondoa Alexis',    'A01', '2025-2026'),
+    ('2nde',  'C',        30, 'M. Abate François',  'A02', '2025-2026'),
+    ('1ere',  'A',        30, 'Mme Nguema Patricia','B01', '2025-2026'),
+    ('1ere',  'C',        30, 'M. Engonga Yves',    'B02', '2025-2026'),
+    ('1ere',  'D',        30, 'M. Owona Serg',      'B03', '2025-2026'),
+    ('1ere',  'TI',       30, 'Mme Essama Diane',   'B04', '2025-2026'),
+    ('Tle',   'A',        30, 'M. Noa Clement',     'C01', '2025-2026'),
+    ('Tle',   'C',        30, 'M. Biyong Jules',    'C02', '2025-2026'),
+    ('Tle',   'D',        30, 'Mme Eboa Sandrine',  'C03', '2025-2026'),
+    ('Tle',   'TI',       30, 'M. Abena Gustave',   'C04', '2025-2026');
+
+-- ---------------------------------------------------------
+-- 2. Élèves (liste fournie + compléments pour ~15/classe)
+-- ---------------------------------------------------------
+INSERT INTO eleve (matricule, nom, prenom, date_naissance, classe_id, nom_parent, tel_parent, email_parent, sexe) VALUES
+    ('25G2033', 'BRAMAËL', 'DEMANO TEDJEUGUIM', '2014-01-26', 1, 'M. Bramaël Patrick', '+237680622101', 'demanotedjeuguim.bramaël@email.cm', 'M'),
+    ('25G2036', 'ANTOINE', 'HEGBA JOSEPH', '2014-07-20', 1, 'M. Antoine Bernard', '+237680622102', 'hegbajoseph.antoine@email.cm', 'M'),
+    ('25G2038', 'LIENEL', 'YOUMBI POMBO', '2014-04-03', 1, 'M. Lienel Jacques', '+237680622103', 'youmbipombo.lienel@email.cm', 'M'),
+    ('25G2062', 'LELICA', 'MEDAH MAFFO LAPNET', '2014-07-18', 1, 'Mme Lelica Berthe', '+237680622104', 'medahmaffolapnet.lelica@email.cm', 'F'),
+    ('25G2064', 'PATRICIA', 'ABUI MAMA ELOUNDOU OLIVE', '2014-07-23', 1, 'Mme Patricia Berthe', '+237680622105', 'abuimamaeloundouolive.patricia@email.cm', 'F'),
+    ('25G2069', 'EMMANUEL', 'SIGNIE CHENDJOU RYAN', '2014-07-16', 1, 'M. Emmanuel Bernard', '+237680622106', 'signiechendjouryan.emmanuel@email.cm', 'M'),
+    ('25G2078', 'ANGE', 'MBOUTOUM YANNENG AUSCARINE', '2014-03-24', 1, 'M. Ange Pierre', '+237680622107', 'mboutoumyannengauscarine.ange@email.cm', 'M'),
+    ('25G2079', 'ESTHER', 'MOUTENG REBECCA', '2014-07-27', 1, 'Mme Esther Cécile', '+237680622108', 'moutengrebecca.esther@email.cm', 'F'),
+    ('25G2505', 'JUNIOR', 'CHAKOUALEU KWEKEU ARTHUR', '2014-12-15', 1, 'M. Junior Jean', '+237680622109', 'chakoualeukwekeuarthur.junior@email.cm', 'M'),
+    ('25I2171', 'SORELLE', 'YANGO NGANYOU GESLIE', '2014-11-05', 1, 'M. Sorelle François', '+237680622110', 'yangonganyougeslie.sorelle@email.cm', 'M'),
+    ('25I2246', 'ALVAREZ', 'Dongmo Prince Charles', '2014-08-25', 1, 'M. Alvarez Paul', '+237680622111', 'dongmoprincecharles.alvarez@email.cm', 'M'),
+    ('25I2255', 'BRICE', 'KOA ESSAMA PAULIN', '2014-05-20', 1, 'M. Brice Joseph', '+237680622112', 'koaessamapaulin.brice@email.cm', 'M'),
+    ('25I2266', 'NAOLIE', 'POUASSI EMALEU PATRICIA', '2014-03-02', 1, 'Mme Naolie Berthe', '+237680622113', 'pouassiemaleupatricia.naolie@email.cm', 'F'),
+    ('25I2283', 'SANDRA', 'MONDJO NZUKAM VANELLE', '2014-06-22', 1, 'Mme Sandra Jeanne', '+237680622114', 'mondjonzukamvanelle.sandra@email.cm', 'F'),
+    ('24G2602', 'Mekongo', 'Junior', '2013-11-20', 2, 'M. Mekongo Patrick', '+237680622115', 'junior.mekongo@email.cm', 'M'),
+    ('24G3167', 'Tagne', 'Steve', '2013-10-23', 2, 'M. Tagne André', '+237680622116', 'steve.tagne@email.cm', 'M'),
+    ('24G4816', 'Eyanga', 'Tom', '2013-11-13', 2, 'M. Eyanga Michel', '+237680622117', 'tom.eyanga@email.cm', 'M'),
+    ('24G5094', 'Paho', 'Sylvie', '2013-03-09', 2, 'M. Paho André', '+237680622118', 'sylvie.paho@email.cm', 'M'),
+    ('24G5177', 'Balla', 'Alice', '2013-02-16', 2, 'Mme Balla Sylvie', '+237680622119', 'alice.balla@email.cm', 'F'),
+    ('24G5210', 'TOYCE', 'Momo passo Tresor', '2013-03-24', 2, 'M. Toyce Thomas', '+237680622120', 'momopassotresor.toyce@email.cm', 'M'),
+    ('24G5659', 'Ndoube', 'Tom', '2013-11-07', 2, 'M. Ndoube Paul', '+237680622121', 'tom.ndoube@email.cm', 'M'),
+    ('24G5830', 'Eyanga', 'Grace', '2013-11-23', 2, 'Mme Eyanga Marguerite', '+237680622122', 'grace.eyanga@email.cm', 'F'),
+    ('24G6965', 'Mengue', 'Sophie', '2013-12-19', 2, 'Mme Mengue Julienne', '+237680622123', 'sophie.mengue@email.cm', 'F'),
+    ('24G7365', 'Kouam', 'Lea', '2013-02-12', 2, 'Mme Kouam Irene', '+237680622124', 'lea.kouam@email.cm', 'F'),
+    ('24G7848', 'Zambo', 'Luc', '2013-01-06', 2, 'M. Zambo Patrick', '+237680622125', 'luc.zambo@email.cm', 'M'),
+    ('24G9457', 'DJANGOURI', 'Ali Fadel', '2013-05-15', 2, 'M. Djangouri Robert', '+237680622126', 'alifadel.djangouri@email.cm', 'M'),
+    ('23U2217', 'DAOUD', 'Bechir Nassour', '2012-11-17', 3, 'M. Daoud Robert', '+237680622127', 'bechirnassour.daoud@email.cm', 'M'),
+    ('23U2228', 'SUNN', 'Fangaing Aniel', '2012-03-16', 3, 'M. Sunn François', '+237680622128', 'fangainganiel.sunn@email.cm', 'M'),
+    ('23U2234', 'ALI', 'ALI YOUSSOUF', '2012-04-21', 3, 'M. Ali François', '+237680622129', 'aliyoussouf.ali@email.cm', 'M'),
+    ('23U2271', 'JOY', 'MBOCK PHILIPPE', '2012-04-01', 3, 'M. Joy Jean', '+237680622130', 'mbockphilippe.joy@email.cm', 'M'),
+    ('23U2290', 'BRYAN', 'Azebazè Bahebeg Aurel', '2012-07-12', 3, 'M. Bryan Robert', '+237680622131', 'azebazèbahebegaurel.bryan@email.cm', 'M'),
+    ('23U2296', 'MERIME', 'DJOMO YONDJIO JAPHET', '2012-10-18', 3, 'M. Merime Michel', '+237680622132', 'djomoyondjiojaphet.merime@email.cm', 'M'),
+    ('23U2317', 'VICTOIRE', 'MANGOUO JACKY', '2012-02-25', 3, 'M. Victoire Michel', '+237680622133', 'mangouojacky.victoire@email.cm', 'M'),
+    ('23U2331', 'WILFRIED', 'BITJONG THEODORE', '2012-06-01', 3, 'M. Wilfried Joseph', '+237680622134', 'bitjongtheodore.wilfried@email.cm', 'M'),
+    ('23U2334', 'LÉANA', 'DJAHO KEMAJOU THÉRÈSE', '2012-05-17', 3, 'Mme Léana Julienne', '+237680622135', 'djahokemajouthérèse.léana@email.cm', 'F'),
+    ('23U2337', 'ELSA', 'SANKWE FEUKENG STELLA', '2012-12-22', 3, 'Mme Elsa Cécile', '+237680622136', 'sankwefeukengstella.elsa@email.cm', 'F'),
+    ('23U2358', 'MAÏDÉ', 'MAHAMAT BARKAÏ', '2012-02-03', 3, 'M. Maïdé Patrick', '+237680622137', 'mahamatbarkaï.maïdé@email.cm', 'M'),
+    ('23U2375', 'ORCHELLE', 'Yemené Lomboué', '2012-12-12', 3, 'M. Orchelle Joseph', '+237680622138', 'yemenélomboué.orchelle@email.cm', 'M'),
+    ('23U2380', 'ROOSEVELT', 'TCHEOTO BERENGER', '2012-03-16', 3, 'M. Roosevelt Pierre', '+237680622139', 'tcheotoberenger.roosevelt@email.cm', 'M'),
+    ('23U2409', 'LESLIE', 'NGUEGUIM DJIMELE', '2012-02-08', 3, 'M. Leslie Thomas', '+237680622140', 'ngueguimdjimele.leslie@email.cm', 'M'),
+    ('23U2425', 'D\'AHUINE', 'TSAFACK MIGUEL', '2012-03-01', 3, 'M. D\'ahuine Michel', '+237680622141', 'tsafackmiguel.d\'ahuine@email.cm', 'M'),
+    ('23U2490', 'GLORIEUSE', 'Kenmogne Ange', '2012-10-03', 3, 'Mme Glorieuse Sylvie', '+237680622142', 'kenmogneange.glorieuse@email.cm', 'F'),
+    ('23U2504', 'LAPA', 'GULENYONGA CHELSY', '2012-03-16', 3, 'M. Lapa Pierre', '+237680622143', 'gulenyongachelsy.lapa@email.cm', 'M'),
+    ('23U2514', 'STEPHANE', 'TENE BANA MAXYM', '2012-07-15', 3, 'M. Stephane Paul', '+237680622144', 'tenebanamaxym.stephane@email.cm', 'M'),
+    ('23U2557', 'KEVIN', 'KOUAWA BOUDA RYAN', '2012-10-27', 3, 'M. Kevin Robert', '+237680622145', 'kouawaboudaryan.kevin@email.cm', 'M'),
+    ('23U2655', 'BOUQUET', 'ZIEM JANNY SOLEIL', '2012-08-27', 3, 'Mme Bouquet Sylvie', '+237680622146', 'ziemjannysoleil.bouquet@email.cm', 'F'),
+    ('23U2704', 'GHISLAIN', 'NTSAMA ARMEL', '2012-12-21', 3, 'M. Ghislain Michel', '+237680622147', 'ntsamaarmel.ghislain@email.cm', 'M'),
+    ('23V2392', 'D\'AVILA', 'NDEMOU II NYATCHEBE DUTAU', '2012-06-10', 3, 'M. D\'avila Patrick', '+237680622148', 'ndemouiinyatchebedutau.davila@email.cm', 'M'),
+    ('23u2241', 'PARFAIT', 'NKONGMENOCK LOÏC', '2012-06-26', 3, 'M. Parfait François', '+237680622149', 'nkongmenockloïc.parfait@email.cm', 'M'),
+    ('23u2251', 'ISRAËL', 'Jou Tadjeu', '2012-11-27', 3, 'M. Israël Joseph', '+237680622150', 'joutadjeu.israël@email.cm', 'M'),
+    ('23u2361', 'ROMÉO', 'Metounou pokam styve', '2012-01-03', 3, 'M. Roméo Michel', '+237680622151', 'metounoupokamstyve.roméo@email.cm', 'M'),
+    ('23U2236', 'HAFIZ', 'Allamine Mahamat', '2012-12-27', 4, 'M. Hafiz Thomas', '+237680622152', 'allaminemahamat.hafiz@email.cm', 'M'),
+    ('23U2284', 'BRIGITTE', 'BONBA', '2012-12-09', 4, 'M. Brigitte Thomas', '+237680622153', 'bonba.brigitte@email.cm', 'M'),
+    ('23U2306', 'KELCY', 'AZEFACK FORNGWENG', '2012-02-19', 4, 'M. Kelcy Jacques', '+237680622154', 'azefackforngweng.kelcy@email.cm', 'M'),
+    ('23U2327', 'PARFAIT', 'BIANDA TCHANA ODILON', '2012-12-16', 4, 'M. Parfait Patrick', '+237680622155', 'biandatchanaodilon.parfait@email.cm', 'M'),
+    ('23U2335', 'RIHANNA', 'DJIEMO KEMBOU GRACE', '2012-10-23', 4, 'Mme Rihanna Jeanne', '+237680622156', 'djiemokembougrace.rihanna@email.cm', 'F'),
+    ('23U2343', 'MEGANE', 'JOUFOGANG KOUDAZEM OCEANNE', '2012-07-03', 4, 'Mme Megane Cécile', '+237680622157', 'joufogangkoudazemoceanne.megane@email.cm', 'F'),
+    ('23U2344', 'RAYAN', 'Zangue sandji Roger Paolo', '2012-03-03', 4, 'M. Rayan François', '+237680622158', 'zanguesandjirogerpaolo.rayan@email.cm', 'M'),
+    ('23U2348', 'FADIL', 'NJIFON NJOYA AROUNA', '2012-12-05', 4, 'M. Fadil Thomas', '+237680622159', 'njifonnjoyaarouna.fadil@email.cm', 'M'),
+    ('23U2360', 'DIANDRA', 'MELI TSAKI SUSY', '2012-11-28', 4, 'M. Diandra Thomas', '+237680622160', 'melitsakisusy.diandra@email.cm', 'M'),
+    ('23U2392', 'DONATIEN', 'TALLA FOSSI', '2012-02-18', 4, 'M. Donatien Jacques', '+237680622161', 'tallafossi.donatien@email.cm', 'M'),
+    ('23U2395', 'CHELLA', 'TSAKEM TEMGOUA ROSLYNE', '2012-01-16', 4, 'Mme Chella Sylvie', '+237680622162', 'tsakemtemgouaroslyne.chella@email.cm', 'F'),
+    ('23U2398', 'WALLACE', 'Mambou Koguem Williams', '2012-03-28', 4, 'M. Wallace Pierre', '+237680622163', 'mamboukoguemwilliams.wallace@email.cm', 'M'),
+    ('23U2402', 'JUNIOR', 'NANA TCHOFFO STEVE', '2012-02-10', 4, 'M. Junior André', '+237680622164', 'nanatchoffosteve.junior@email.cm', 'M'),
+    ('23U2406', 'JUNIOR', 'NGA YENDE ALI', '2012-11-20', 4, 'M. Junior André', '+237680622165', 'ngayendeali.junior@email.cm', 'M'),
+    ('23U2410', 'CLIVEL', 'Fokou Temfack Tedy', '2012-05-01', 4, 'M. Clivel Bernard', '+237680622166', 'fokoutemfacktedy.clivel@email.cm', 'M'),
+    ('23U2417', 'JUNIOR', 'TONYE II FRANK', '2012-09-26', 4, 'M. Junior Joseph', '+237680622167', 'tonyeiifrank.junior@email.cm', 'M'),
+    ('23U2419', 'VANNEL', 'Tegang Kambi Christian', '2012-04-04', 4, 'M. Vannel Joseph', '+237680622168', 'tegangkambichristian.vannel@email.cm', 'M'),
+    ('23U2436', 'CHRISTIAN', 'Essama Essama Dave', '2012-01-03', 4, 'M. Christian Jean', '+237680622169', 'essamaessamadave.christian@email.cm', 'M'),
+    ('23U2493', 'JORDAN', 'Kenmogne Takou Cyrille', '2012-01-01', 4, 'M. Jordan Thomas', '+237680622170', 'kenmognetakoucyrille.jordan@email.cm', 'M'),
+    ('23U2500', 'FÉLICITÉ', 'Gwos Christine', '2012-10-18', 4, 'M. Félicité François', '+237680622171', 'gwoschristine.félicité@email.cm', 'M'),
+    ('23V2067', 'MANGUELLE', 'Reine Élisabeth Obang', '2012-11-20', 4, 'M. Manguelle Paul', '+237680622172', 'reineélisabethobang.manguelle@email.cm', 'M'),
+    ('23V2302', 'BRINDA', 'MANOH SONKOUE', '2012-09-18', 4, 'M. Brinda Jacques', '+237680622173', 'manohsonkoue.brinda@email.cm', 'M'),
+    ('23V2391', 'REBECCA', 'MADEGUI TEKEM GABRIELLE', '2012-08-20', 4, 'Mme Rebecca Suzanne', '+237680622174', 'madeguitekemgabrielle.rebecca@email.cm', 'F'),
+    ('23u2567', 'STEVE', 'Nono tchamokouin emmanuel', '2012-05-27', 4, 'M. Steve André', '+237680622175', 'nonotchamokouinemmanuel.steve@email.cm', 'M'),
+    ('23U2222', 'RICHTELLE', 'KITIO FEUDJIO', '2012-11-02', 5, 'M. Richtelle Michel', '+237680622176', 'kitiofeudjio.richtelle@email.cm', 'M'),
+    ('23U2276', 'FRANK', 'Noubangue Nkith Ruben', '2012-10-09', 5, 'M. Frank Robert', '+237680622177', 'noubanguenkithruben.frank@email.cm', 'M'),
+    ('23U2283', 'HERVAN', 'Bayi Youmbi Henri Ryan', '2012-11-21', 5, 'M. Hervan Patrick', '+237680622178', 'bayiyoumbihenriryan.hervan@email.cm', 'M'),
+    ('23U2292', 'PAFING', 'DJINE SINTO', '2012-12-26', 5, 'M. Pafing André', '+237680622179', 'djinesinto.pafing@email.cm', 'M'),
+    ('23U2313', 'FABIOLA', 'Tassolimo Tiwa Zita', '2012-03-24', 5, 'Mme Fabiola Sylvie', '+237680622180', 'tassolimotiwazita.fabiola@email.cm', 'F'),
+    ('23U2351', 'RAYMOND', 'NANYOU Gilles', '2012-04-05', 5, 'M. Raymond André', '+237680622181', 'nanyougilles.raymond@email.cm', 'M'),
+    ('23U2355', 'MAA', 'MARTIAL JEANNOT', '2012-05-07', 5, 'M. Maa André', '+237680622182', 'martialjeannot.maa@email.cm', 'M'),
+    ('23U2362', 'FRANCE', 'METOUNA LUCRESSE', '2012-12-04', 5, 'Mme France Cécile', '+237680622183', 'metounalucresse.france@email.cm', 'F'),
+    ('23U2390', 'VICLANE', 'Tsouata ngoula', '2012-02-10', 5, 'M. Viclane François', '+237680622184', 'tsouatangoula.viclane@email.cm', 'M'),
+    ('23U2401', 'MARTIN', 'Ngongang Ngolamzé Yann', '2012-09-20', 5, 'M. Martin Jean', '+237680622185', 'ngongangngolamzéyann.martin@email.cm', 'M'),
+    ('23U2413', 'EDEN', 'TOUKO TOMTA MAXIMIN', '2012-09-12', 5, 'M. Eden Thomas', '+237680622186', 'toukotomtamaximin.eden@email.cm', 'M'),
+    ('23U2416', 'BRENDA', 'Temdji Yimetio', '2012-11-21', 5, 'M. Brenda Paul', '+237680622187', 'temdjiyimetio.brenda@email.cm', 'M'),
+    ('23U2439', 'BARTHÉLÉMY', 'Evouna Belobo Didier', '2012-04-17', 5, 'M. Barthélémy Patrick', '+237680622188', 'evounabelobodidier.barthélémy@email.cm', 'M'),
+    ('23U2448', 'ALI', 'MAHAMAT', '2012-12-02', 5, 'M. Ali Jean', '+237680622189', 'mahamat.ali@email.cm', 'M'),
+    ('23U2503', 'MARCIALE', 'GHADEUNE NZALLE GRÂCE', '2012-03-19', 5, 'Mme Marciale Patricia', '+237680622190', 'ghadeunenzallegrâce.marciale@email.cm', 'F'),
+    ('23U2543', 'VANECK', 'KENGNE MICHEL', '2012-04-14', 5, 'M. Vaneck Joseph', '+237680622191', 'kengnemichel.vaneck@email.cm', 'M'),
+    ('23U2675', 'JUSTIN', 'NKADA MBATONGA RALPHON', '2012-11-01', 5, 'M. Justin Michel', '+237680622192', 'nkadambatongaralphon.justin@email.cm', 'M'),
+    ('23U2944', 'ANGE', 'SANDJO TCHOUA MAELISSE ANNIE', '2012-07-24', 5, 'Mme Ange Marguerite', '+237680622193', 'sandjotchouamaelisseannie.ange@email.cm', 'F'),
+    ('23V2291', 'KEVIN', 'BILLE THEOPHILE', '2012-04-22', 5, 'M. Kevin Jacques', '+237680622194', 'billetheophile.kevin@email.cm', 'M'),
+    ('23V2352', 'LAURAINE', 'ATIWA KUETE ELSA', '2012-07-24', 5, 'Mme Lauraine Marie', '+237680622195', 'atiwakueteelsa.lauraine@email.cm', 'F'),
+    ('23V2456', 'JESUIS', 'Ziem David De', '2012-07-24', 5, 'M. Jesuis Robert', '+237680622196', 'ziemdavidde.jesuis@email.cm', 'M'),
+    ('23V2783', 'KORI', 'Ibrahim Abakar', '2012-12-14', 5, 'M. Kori Thomas', '+237680622197', 'ibrahimabakar.kori@email.cm', 'M'),
+    ('23u2293', 'CARELLE', 'Dina kameni Joyce', '2012-10-13', 5, 'Mme Carelle Julienne', '+237680622198', 'dinakamenijoyce.carelle@email.cm', 'F'),
+    ('23u2399', 'OCEANNE', 'MANDENG Judith', '2012-12-12', 5, 'M. Oceanne Patrick', '+237680622199', 'mandengjudith.oceanne@email.cm', 'M'),
+    ('22U2655', 'Mbah', 'Chloe', '2011-12-06', 6, 'Mme Mbah Berthe', '+2376806221100', 'chloe.mbah@email.cm', 'F'),
+    ('22U2946', 'Sanga', 'Adam', '2011-12-23', 6, 'M. Sanga Michel', '+2376806221101', 'adam.sanga@email.cm', 'M'),
+    ('22U4331', 'Biyiti', 'Ryan', '2011-07-27', 6, 'M. Biyiti Thomas', '+2376806221102', 'ryan.biyiti@email.cm', 'M'),
+    ('22U5101', 'Balla', 'Eric', '2011-09-10', 6, 'M. Balla Thomas', '+2376806221103', 'eric.balla@email.cm', 'M'),
+    ('22U5264', 'Paho', 'Grace', '2011-04-14', 6, 'Mme Paho Suzanne', '+2376806221104', 'grace.paho@email.cm', 'F'),
+    ('22U5502', 'Kouam', 'Ryan', '2011-01-22', 6, 'M. Kouam Jacques', '+2376806221105', 'ryan.kouam@email.cm', 'M'),
+    ('22U5511', 'Ndoube', 'Kevin', '2011-10-28', 6, 'M. Ndoube Michel', '+2376806221106', 'kevin.ndoube@email.cm', 'M'),
+    ('22U5908', 'Eyanga', 'Steve', '2011-03-06', 6, 'M. Eyanga Bernard', '+2376806221107', 'steve.eyanga@email.cm', 'M'),
+    ('22U5959', 'Paho', 'Claire', '2011-05-16', 6, 'M. Paho Paul', '+2376806221108', 'claire.paho@email.cm', 'M'),
+    ('22U6040', 'Ngassa', 'Nina', '2011-03-19', 6, 'Mme Ngassa Marie', '+2376806221109', 'nina.ngassa@email.cm', 'F'),
+    ('22U8341', 'Ndoube', 'Iris', '2011-10-22', 6, 'Mme Ndoube Marie', '+2376806221110', 'iris.ndoube@email.cm', 'F'),
+    ('22U8554', 'Sanga', 'Kevin', '2011-06-24', 6, 'M. Sanga Patrick', '+2376806221111', 'kevin.sanga@email.cm', 'M'),
+    ('22U9475', 'Wamba', 'Max', '2011-10-05', 6, 'M. Wamba François', '+2376806221112', 'max.wamba@email.cm', 'M'),
+    ('22V2319', 'MOUSSA', 'ABDEL NASSER', '2011-05-07', 6, 'M. Moussa Jean', '+2376806221113', 'abdelnasser.moussa@email.cm', 'M'),
+    ('22v2344', 'MERVEILLE', 'NGANFANG KENGNI IDE', '2011-09-22', 6, 'M. Merveille Pierre', '+2376806221114', 'nganfangkengniide.merveille@email.cm', 'M'),
+    ('22U2856', 'Ngassa', 'Joel', '2011-09-16', 7, 'M. Ngassa Joseph', '+2376806221115', 'joel.ngassa@email.cm', 'M'),
+    ('22U3170', 'Ndoube', 'Brice', '2011-12-01', 7, 'M. Ndoube Patrick', '+2376806221116', 'brice.ndoube@email.cm', 'M'),
+    ('22U3909', 'Ebongue', 'Sophie', '2011-09-06', 7, 'Mme Ebongue Julienne', '+2376806221117', 'sophie.ebongue@email.cm', 'F'),
+    ('22U4364', 'Tchinda', 'Paul', '2011-05-04', 7, 'M. Tchinda André', '+2376806221118', 'paul.tchinda@email.cm', 'M'),
+    ('22U5089', 'Mekongo', 'Sophie', '2011-10-15', 7, 'Mme Mekongo Marie', '+2376806221119', 'sophie.mekongo@email.cm', 'F'),
+    ('22U6170', 'Tchinda', 'Eric', '2011-10-05', 7, 'M. Tchinda Paul', '+2376806221120', 'eric.tchinda@email.cm', 'M'),
+    ('22U7713', 'Ebongue', 'Anna', '2011-02-13', 7, 'M. Ebongue Jacques', '+2376806221121', 'anna.ebongue@email.cm', 'M'),
+    ('22U7753', 'Sanga', 'Kevin', '2011-10-14', 7, 'M. Sanga Michel', '+2376806221122', 'kevin.sanga@email.cm', 'M'),
+    ('22U8729', 'Eyanga', 'Kevin', '2011-01-01', 7, 'M. Eyanga Jacques', '+2376806221123', 'kevin.eyanga@email.cm', 'M'),
+    ('22U9118', 'Tagne', 'Sophie', '2011-06-13', 7, 'Mme Tagne Claire', '+2376806221124', 'sophie.tagne@email.cm', 'F'),
+    ('22U9169', 'Kouam', 'Claire', '2011-08-26', 7, 'M. Kouam Patrick', '+2376806221125', 'claire.kouam@email.cm', 'M'),
+    ('22V2285', 'BROWN', 'OUMBE JOSEPH JORKAELF', '2011-09-22', 7, 'M. Brown Patrick', '+2376806221126', 'oumbejosephjorkaelf.brown@email.cm', 'M'),
+    ('22v2355', 'MERVEILLE', 'Djilo Simo Annette', '2011-02-25', 7, 'M. Merveille André', '+2376806221127', 'djilosimoannette.merveille@email.cm', 'M'),
+    ('22U2327', 'Mekongo', 'Christian', '2011-07-24', 8, 'M. Mekongo Joseph', '+2376806221128', 'christian.mekongo@email.cm', 'M'),
+    ('22U2800', 'Zambo', 'Brice', '2011-08-24', 8, 'M. Zambo Thomas', '+2376806221129', 'brice.zambo@email.cm', 'M'),
+    ('22U3667', 'Essindi', 'Anna', '2011-07-08', 8, 'M. Essindi Robert', '+2376806221130', 'anna.essindi@email.cm', 'M'),
+    ('22U4934', 'Zambo', 'Anna', '2011-01-10', 8, 'M. Zambo Pierre', '+2376806221131', 'anna.zambo@email.cm', 'M'),
+    ('22U5279', 'Zambo', 'Sophie', '2011-03-19', 8, 'Mme Zambo Berthe', '+2376806221132', 'sophie.zambo@email.cm', 'F'),
+    ('22U6443', 'Zambo', 'Esther', '2011-03-28', 8, 'Mme Zambo Cécile', '+2376806221133', 'esther.zambo@email.cm', 'F'),
+    ('22U6467', 'Mbah', 'Emma', '2011-03-20', 8, 'M. Mbah François', '+2376806221134', 'emma.mbah@email.cm', 'M'),
+    ('22U6634', 'Paho', 'Christian', '2011-05-08', 8, 'M. Paho Jacques', '+2376806221135', 'christian.paho@email.cm', 'M'),
+    ('22U7156', 'Kouam', 'Marie', '2011-08-17', 8, 'Mme Kouam Victoire', '+2376806221136', 'marie.kouam@email.cm', 'F'),
+    ('22U7663', 'Sanga', 'Hugo', '2011-10-20', 8, 'M. Sanga François', '+2376806221137', 'hugo.sanga@email.cm', 'M'),
+    ('22U8581', 'Ndoube', 'Adam', '2011-09-19', 8, 'M. Ndoube Jacques', '+2376806221138', 'adam.ndoube@email.cm', 'M'),
+    ('22U8832', 'Mengue', 'Emma', '2011-04-21', 8, 'M. Mengue Patrick', '+2376806221139', 'emma.mengue@email.cm', 'M'),
+    ('22U9624', 'Balla', 'Max', '2011-08-06', 8, 'M. Balla Pierre', '+2376806221140', 'max.balla@email.cm', 'M'),
+    ('22V2312', 'VALIN', 'WANDJI KAMDA DARYL', '2011-07-01', 8, 'M. Valin Joseph', '+2376806221141', 'wandjikamdadaryl.valin@email.cm', 'M'),
+    ('22v2335', 'ELSA', 'Mafang Sonita', '2011-09-14', 8, 'Mme Elsa Cécile', '+2376806221142', 'mafangsonita.elsa@email.cm', 'F'),
+    ('21A3007', 'MARTIN', 'AMAYEN BOUSSIOM THIERRY', '2010-05-01', 9, 'M. Martin Paul', '+2376806221143', 'amayenboussiomthierry.martin@email.cm', 'M'),
+    ('21A3313', 'Ebongue', 'Nina', '2010-03-01', 9, 'Mme Ebongue Julienne', '+2376806221144', 'nina.ebongue@email.cm', 'F'),
+    ('21A3407', 'Wamba', 'Max', '2010-07-08', 9, 'M. Wamba André', '+2376806221145', 'max.wamba@email.cm', 'M'),
+    ('21A3874', 'Eyanga', 'Esther', '2010-07-28', 9, 'Mme Eyanga Marguerite', '+2376806221146', 'esther.eyanga@email.cm', 'F'),
+    ('21A4329', 'Ngassa', 'Nathan', '2010-10-09', 9, 'M. Ngassa Paul', '+2376806221147', 'nathan.ngassa@email.cm', 'M'),
+    ('21A5752', 'Mengue', 'Hugo', '2010-02-13', 9, 'M. Mengue François', '+2376806221148', 'hugo.mengue@email.cm', 'M'),
+    ('21A7116', 'HAROLD', 'MVONDO BRIVEL', '2010-02-09', 9, 'M. Harold Thomas', '+2376806221149', 'mvondobrivel.harold@email.cm', 'M'),
+    ('21A7220', 'Ndoube', 'Sylvie', '2010-11-02', 9, 'M. Ndoube François', '+2376806221150', 'sylvie.ndoube@email.cm', 'M'),
+    ('21A7812', 'Balla', 'Nina', '2010-12-12', 9, 'Mme Balla Irene', '+2376806221151', 'nina.balla@email.cm', 'F'),
+    ('21A7829', 'Paho', 'Lea', '2010-03-25', 9, 'Mme Paho Julienne', '+2376806221152', 'lea.paho@email.cm', 'F'),
+    ('21A8223', 'Balla', 'Hugo', '2010-06-13', 9, 'M. Balla Michel', '+2376806221153', 'hugo.balla@email.cm', 'M'),
+    ('21A8253', 'Yonta', 'Anna', '2010-07-20', 9, 'M. Yonta Joseph', '+2376806221154', 'anna.yonta@email.cm', 'M'),
+    ('21A2383', 'Mengue', 'Luc', '2010-06-12', 10, 'M. Mengue Jean', '+2376806221155', 'luc.mengue@email.cm', 'M'),
+    ('21A3277', 'Sanga', 'Alice', '2010-02-20', 10, 'Mme Sanga Irene', '+2376806221156', 'alice.sanga@email.cm', 'F'),
+    ('21A3565', 'Sanga', 'Paul', '2010-06-27', 10, 'M. Sanga Jacques', '+2376806221157', 'paul.sanga@email.cm', 'M'),
+    ('21A3889', 'Mekongo', 'Alice', '2010-08-25', 10, 'Mme Mekongo Suzanne', '+2376806221158', 'alice.mekongo@email.cm', 'F'),
+    ('21A4371', 'Mbah', 'Steve', '2010-01-17', 10, 'M. Mbah François', '+2376806221159', 'steve.mbah@email.cm', 'M'),
+    ('21A4745', 'Mbah', 'Marie', '2010-09-09', 10, 'Mme Mbah Suzanne', '+2376806221160', 'marie.mbah@email.cm', 'F'),
+    ('21A5662', 'Ndoube', 'Laura', '2010-05-07', 10, 'M. Ndoube Pierre', '+2376806221161', 'laura.ndoube@email.cm', 'M'),
+    ('21A5734', 'Ebongue', 'Jordan', '2010-07-22', 10, 'M. Ebongue Thomas', '+2376806221162', 'jordan.ebongue@email.cm', 'M'),
+    ('21A6596', 'Essindi', 'Marie', '2010-07-21', 10, 'Mme Essindi Patricia', '+2376806221163', 'marie.essindi@email.cm', 'F'),
+    ('21A7385', 'Kouam', 'Sylvie', '2010-05-27', 10, 'M. Kouam Paul', '+2376806221164', 'sylvie.kouam@email.cm', 'M'),
+    ('21A7751', 'Balla', 'Tom', '2010-01-20', 10, 'M. Balla Jean', '+2376806221165', 'tom.balla@email.cm', 'M'),
+    ('21A8329', 'BLONDEL', 'DJIONZE NGOGANG ANGE', '2010-06-27', 10, 'Mme Blondel Jeanne', '+2376806221166', 'djionzengogangange.blondel@email.cm', 'F'),
+    ('21A8371', 'ERIC', 'NKOA MEVOAH', '2010-05-19', 10, 'M. Eric Bernard', '+2376806221167', 'nkoamevoah.eric@email.cm', 'M'),
+    ('21A8671', 'Ndoube', 'Emma', '2010-04-21', 10, 'M. Ndoube André', '+2376806221168', 'emma.ndoube@email.cm', 'M'),
+    ('21A9578', 'Ebongue', 'Ruth', '2010-06-02', 10, 'M. Ebongue Robert', '+2376806221169', 'ruth.ebongue@email.cm', 'M'),
+    ('20L2904', 'Mbah', 'Chloe', '2009-01-11', 11, 'Mme Mbah Cécile', '+2376806221170', 'chloe.mbah@email.cm', 'F'),
+    ('20L3419', 'Tchinda', 'Laura', '2009-05-19', 11, 'M. Tchinda Robert', '+2376806221171', 'laura.tchinda@email.cm', 'M'),
+    ('20L3525', 'Mekongo', 'Adam', '2009-08-22', 11, 'M. Mekongo Michel', '+2376806221172', 'adam.mekongo@email.cm', 'M'),
+    ('20L3750', 'Ndoube', 'Yann', '2009-05-08', 11, 'M. Ndoube Joseph', '+2376806221173', 'yann.ndoube@email.cm', 'M'),
+    ('20L5021', 'Yonta', 'Hugo', '2009-01-22', 11, 'M. Yonta Jean', '+2376806221174', 'hugo.yonta@email.cm', 'M'),
+    ('20L6162', 'MAXANCE', 'EFA YANN', '2009-05-12', 11, 'M. Maxance Paul', '+2376806221175', 'efayann.maxance@email.cm', 'M'),
+    ('20L6509', 'Ngassa', 'Adam', '2009-08-16', 11, 'M. Ngassa Robert', '+2376806221176', 'adam.ngassa@email.cm', 'M'),
+    ('20L7671', 'Wamba', 'Grace', '2009-04-12', 11, 'Mme Wamba Suzanne', '+2376806221177', 'grace.wamba@email.cm', 'F'),
+    ('20L7675', 'Ngassa', 'Sarah', '2009-05-08', 11, 'M. Ngassa Jacques', '+2376806221178', 'sarah.ngassa@email.cm', 'M'),
+    ('20L8552', 'Mbah', 'Marie', '2009-07-07', 11, 'Mme Mbah Marie', '+2376806221179', 'marie.mbah@email.cm', 'F'),
+    ('20L9148', 'Mbah', 'Tom', '2009-12-25', 11, 'M. Mbah Bernard', '+2376806221180', 'tom.mbah@email.cm', 'M'),
+    ('20L9574', 'ROMIAL', 'Nzokem kenne', '2009-09-22', 11, 'M. Romial Paul', '+2376806221181', 'nzokemkenne.romial@email.cm', 'M'),
+    ('20L3907', 'Mengue', 'Laura', '2009-01-01', 12, 'M. Mengue Michel', '+2376806221182', 'laura.mengue@email.cm', 'M'),
+    ('20L5776', 'Tagne', 'Julie', '2009-12-10', 12, 'Mme Tagne Berthe', '+2376806221183', 'julie.tagne@email.cm', 'F'),
+    ('20L6391', 'Sanga', 'Chloe', '2009-11-02', 12, 'Mme Sanga Julienne', '+2376806221184', 'chloe.sanga@email.cm', 'F'),
+    ('20L6812', 'Zambo', 'Ryan', '2009-04-24', 12, 'M. Zambo Paul', '+2376806221185', 'ryan.zambo@email.cm', 'M'),
+    ('20L7350', 'Ebongue', 'Emma', '2009-11-27', 12, 'M. Ebongue Patrick', '+2376806221186', 'emma.ebongue@email.cm', 'M'),
+    ('20L8193', 'Sanga', 'Nathan', '2009-06-13', 12, 'M. Sanga Jacques', '+2376806221187', 'nathan.sanga@email.cm', 'M'),
+    ('20L8240', 'MALAÏ', 'Sharifatou', '2009-09-19', 12, 'M. Malaï André', '+2376806221188', 'sharifatou.malaï@email.cm', 'M'),
+    ('20L8407', 'Sanga', 'Hugo', '2009-08-24', 12, 'M. Sanga Bernard', '+2376806221189', 'hugo.sanga@email.cm', 'M'),
+    ('20L9010', 'Paho', 'Laura', '2009-05-09', 12, 'M. Paho Pierre', '+2376806221190', 'laura.paho@email.cm', 'M'),
+    ('20L9085', 'Ebongue', 'Anna', '2009-01-03', 12, 'M. Ebongue Pierre', '+2376806221191', 'anna.ebongue@email.cm', 'M'),
+    ('20L9092', 'LAETICIA', 'Feudjio tsague', '2009-12-19', 12, 'M. Laeticia Jacques', '+2376806221192', 'feudjiotsague.laeticia@email.cm', 'M'),
+    ('20L9156', 'Ndoube', 'Esther', '2009-01-01', 12, 'Mme Ndoube Patricia', '+2376806221193', 'esther.ndoube@email.cm', 'F'),
+    ('20L9570', 'Mbah', 'Julie', '2009-09-24', 12, 'Mme Mbah Berthe', '+2376806221194', 'julie.mbah@email.cm', 'F'),
+    ('20L9796', 'Mengue', 'Sarah', '2009-10-12', 12, 'M. Mengue Michel', '+2376806221195', 'sarah.mengue@email.cm', 'M'),
+    ('20L2544', 'Sanga', 'Christian', '2009-10-14', 13, 'M. Sanga Jacques', '+2376806221196', 'christian.sanga@email.cm', 'M'),
+    ('20L3323', 'Tagne', 'Nina', '2009-10-19', 13, 'Mme Tagne Julienne', '+2376806221197', 'nina.tagne@email.cm', 'F'),
+    ('20L3659', 'Yonta', 'Marie', '2009-09-28', 13, 'Mme Yonta Claire', '+2376806221198', 'marie.yonta@email.cm', 'F'),
+    ('20L3874', 'ROOSEVELT', 'WAMBA SAHA VITALIS', '2009-05-09', 13, 'M. Roosevelt André', '+2376806221199', 'wambasahavitalis.roosevelt@email.cm', 'M'),
+    ('20L4662', 'ERWANE', 'GUIFFO TATCHIM JORESSE', '2009-06-02', 13, 'M. Erwane Jean', '+2376806221200', 'guiffotatchimjoresse.erwane@email.cm', 'M'),
+    ('20L6403', 'Sanga', 'Grace', '2009-02-12', 13, 'Mme Sanga Cécile', '+2376806221201', 'grace.sanga@email.cm', 'F'),
+    ('20L6807', 'Ngassa', 'Esther', '2009-06-05', 13, 'Mme Ngassa Julienne', '+2376806221202', 'esther.ngassa@email.cm', 'F'),
+    ('20L7273', 'Tchinda', 'Sarah', '2009-02-11', 13, 'M. Tchinda Bernard', '+2376806221203', 'sarah.tchinda@email.cm', 'M'),
+    ('20L7503', 'Zambo', 'Nathan', '2009-03-20', 13, 'M. Zambo Robert', '+2376806221204', 'nathan.zambo@email.cm', 'M'),
+    ('20L7662', 'Mengue', 'Sylvie', '2009-01-07', 13, 'M. Mengue Pierre', '+2376806221205', 'sylvie.mengue@email.cm', 'M'),
+    ('20L8333', 'Ngassa', 'Luc', '2009-01-25', 13, 'M. Ngassa André', '+2376806221206', 'luc.ngassa@email.cm', 'M'),
+    ('20L8683', 'Tchinda', 'Max', '2009-07-07', 13, 'M. Tchinda François', '+2376806221207', 'max.tchinda@email.cm', 'M'),
+    ('20L9425', 'Tchinda', 'Grace', '2009-06-02', 13, 'Mme Tchinda Julienne', '+2376806221208', 'grace.tchinda@email.cm', 'F'),
+    ('20L2707', 'Eyanga', 'Iris', '2009-01-14', 14, 'Mme Eyanga Marguerite', '+2376806221209', 'iris.eyanga@email.cm', 'F'),
+    ('20L3447', 'Tagne', 'Sylvie', '2009-12-26', 14, 'M. Tagne Joseph', '+2376806221210', 'sylvie.tagne@email.cm', 'M'),
+    ('20L3476', 'Zambo', 'Claire', '2009-05-13', 14, 'M. Zambo Jean', '+2376806221211', 'claire.zambo@email.cm', 'M'),
+    ('20L4269', 'Ndoube', 'Sylvie', '2009-09-25', 14, 'M. Ndoube André', '+2376806221212', 'sylvie.ndoube@email.cm', 'M'),
+    ('20L5463', 'Wamba', 'Kevin', '2009-07-10', 14, 'M. Wamba François', '+2376806221213', 'kevin.wamba@email.cm', 'M'),
+    ('20L6794', 'Tagne', 'Nathan', '2009-05-21', 14, 'M. Tagne Bernard', '+2376806221214', 'nathan.tagne@email.cm', 'M'),
+    ('20L7027', 'Mengue', 'Junior', '2009-06-23', 14, 'M. Mengue Thomas', '+2376806221215', 'junior.mengue@email.cm', 'M'),
+    ('20L7568', 'Tagne', 'Ruth', '2009-07-20', 14, 'M. Tagne Joseph', '+2376806221216', 'ruth.tagne@email.cm', 'M'),
+    ('20L8616', 'Wamba', 'Christian', '2009-07-12', 14, 'M. Wamba Joseph', '+2376806221217', 'christian.wamba@email.cm', 'M'),
+    ('20L8743', 'Zambo', 'Marie', '2009-05-12', 14, 'Mme Zambo Patricia', '+2376806221218', 'marie.zambo@email.cm', 'F'),
+    ('20L8919', 'DARUIS', 'KAMGA GUIFO', '2009-04-06', 14, 'M. Daruis Thomas', '+2376806221219', 'kamgaguifo.daruis@email.cm', 'M'),
+    ('20L9071', 'Mbah', 'Marie', '2009-01-06', 14, 'Mme Mbah Claire', '+2376806221220', 'marie.mbah@email.cm', 'F'),
+    ('19T3108', 'Yonta', 'Christian', '2008-05-10', 15, 'M. Yonta Bernard', '+2376806221221', 'christian.yonta@email.cm', 'M'),
+    ('19T3226', 'GRACIA', 'KENGNE MONGOU SAGNOL', '2008-02-25', 15, 'M. Gracia Patrick', '+2376806221222', 'kengnemongousagnol.gracia@email.cm', 'M'),
+    ('19T3394', 'Sanga', 'Nathan', '2008-10-17', 15, 'M. Sanga François', '+2376806221223', 'nathan.sanga@email.cm', 'M'),
+    ('19T4078', 'Paho', 'Lea', '2008-04-22', 15, 'Mme Paho Sylvie', '+2376806221224', 'lea.paho@email.cm', 'F'),
+    ('19T4198', 'Yonta', 'Adam', '2008-07-19', 15, 'M. Yonta Robert', '+2376806221225', 'adam.yonta@email.cm', 'M'),
+    ('19T5257', 'Wamba', 'Max', '2008-02-14', 15, 'M. Wamba Patrick', '+2376806221226', 'max.wamba@email.cm', 'M'),
+    ('19T5355', 'Eyanga', 'Julie', '2008-02-18', 15, 'Mme Eyanga Jeanne', '+2376806221227', 'julie.eyanga@email.cm', 'F'),
+    ('19T6022', 'Paho', 'Sophie', '2008-09-25', 15, 'Mme Paho Irene', '+2376806221228', 'sophie.paho@email.cm', 'F'),
+    ('19T6281', 'Yonta', 'Yann', '2008-08-01', 15, 'M. Yonta Jacques', '+2376806221229', 'yann.yonta@email.cm', 'M'),
+    ('19T6422', 'Mbah', 'Emma', '2008-12-04', 15, 'M. Mbah Jean', '+2376806221230', 'emma.mbah@email.cm', 'M'),
+    ('19T6500', 'Ebongue', 'Jordan', '2008-05-04', 15, 'M. Ebongue Pierre', '+2376806221231', 'jordan.ebongue@email.cm', 'M'),
+    ('19T7243', 'Paho', 'Sophie', '2008-04-11', 15, 'Mme Paho Marguerite', '+2376806221232', 'sophie.paho@email.cm', 'F'),
+    ('19T7318', 'Tagne', 'Emma', '2008-08-22', 15, 'M. Tagne Patrick', '+2376806221233', 'emma.tagne@email.cm', 'M'),
+    ('19T7966', 'Essindi', 'Paul', '2008-01-23', 15, 'M. Essindi Paul', '+2376806221234', 'paul.essindi@email.cm', 'M'),
+    ('19T8847', 'Yonta', 'Sylvie', '2008-03-22', 15, 'M. Yonta Thomas', '+2376806221235', 'sylvie.yonta@email.cm', 'M'),
+    ('19T2300', 'Tchinda', 'Tom', '2008-12-23', 16, 'M. Tchinda Bernard', '+2376806221236', 'tom.tchinda@email.cm', 'M'),
+    ('19T2421', 'Paho', 'Chloe', '2008-12-24', 16, 'Mme Paho Suzanne', '+2376806221237', 'chloe.paho@email.cm', 'F'),
+    ('19T4032', 'Zambo', 'Frank', '2008-12-16', 16, 'M. Zambo Jean', '+2376806221238', 'frank.zambo@email.cm', 'M'),
+    ('19T4171', 'Mbah', 'Chloe', '2008-05-17', 16, 'Mme Mbah Suzanne', '+2376806221239', 'chloe.mbah@email.cm', 'F'),
+    ('19T5017', 'Biyiti', 'Sylvie', '2008-10-15', 16, 'M. Biyiti Thomas', '+2376806221240', 'sylvie.biyiti@email.cm', 'M'),
+    ('19T5630', 'CÉDRIC', 'KEPAWOU FEUZEU GATRICE', '2008-02-07', 16, 'M. Cédric Jacques', '+2376806221241', 'kepawoufeuzeugatrice.cédric@email.cm', 'M'),
+    ('19T6611', 'Mekongo', 'Hugo', '2008-08-16', 16, 'M. Mekongo Paul', '+2376806221242', 'hugo.mekongo@email.cm', 'M'),
+    ('19T7704', 'Tagne', 'Laura', '2008-08-14', 16, 'M. Tagne Jacques', '+2376806221243', 'laura.tagne@email.cm', 'M'),
+    ('19T8436', 'Tagne', 'Anna', '2008-04-27', 16, 'M. Tagne Pierre', '+2376806221244', 'anna.tagne@email.cm', 'M'),
+    ('19T9189', 'Ngassa', 'Diana', '2008-12-18', 16, 'Mme Ngassa Marie', '+2376806221245', 'diana.ngassa@email.cm', 'F'),
+    ('19T9334', 'Mekongo', 'Yann', '2008-04-19', 16, 'M. Mekongo Robert', '+2376806221246', 'yann.mekongo@email.cm', 'M'),
+    ('19T9946', 'Ebongue', 'Christian', '2008-06-19', 16, 'M. Ebongue Joseph', '+2376806221247', 'christian.ebongue@email.cm', 'M'),
+    ('19T3519', 'Eyanga', 'Steve', '2008-05-08', 17, 'M. Eyanga Jean', '+2376806221248', 'steve.eyanga@email.cm', 'M'),
+    ('19T3526', 'Ngassa', 'Sophie', '2008-06-09', 17, 'Mme Ngassa Berthe', '+2376806221249', 'sophie.ngassa@email.cm', 'F'),
+    ('19T4397', 'ROMANE', 'Kwinou Moukoli Christan', '2008-08-26', 17, 'M. Romane Bernard', '+2376806221250', 'kwinoumoukolichristan.romane@email.cm', 'M'),
+    ('19T4878', 'Balla', 'Alice', '2008-10-04', 17, 'Mme Balla Marguerite', '+2376806221251', 'alice.balla@email.cm', 'F'),
+    ('19T5861', 'Balla', 'Jean', '2008-02-04', 17, 'M. Balla Michel', '+2376806221252', 'jean.balla@email.cm', 'M'),
+    ('19T6478', 'Mekongo', 'Junior', '2008-06-23', 17, 'M. Mekongo Michel', '+2376806221253', 'junior.mekongo@email.cm', 'M'),
+    ('19T6798', 'Biyiti', 'Hugo', '2008-03-25', 17, 'M. Biyiti Thomas', '+2376806221254', 'hugo.biyiti@email.cm', 'M'),
+    ('19T6869', 'Zambo', 'Sarah', '2008-01-21', 17, 'M. Zambo André', '+2376806221255', 'sarah.zambo@email.cm', 'M'),
+    ('19T7612', 'Sanga', 'Jules', '2008-05-07', 17, 'M. Sanga Joseph', '+2376806221256', 'jules.sanga@email.cm', 'M'),
+    ('19T7885', 'Zambo', 'Kevin', '2008-03-21', 17, 'M. Zambo Thomas', '+2376806221257', 'kevin.zambo@email.cm', 'M'),
+    ('19T7886', 'Biyiti', 'Frank', '2008-03-28', 17, 'M. Biyiti Jacques', '+2376806221258', 'frank.biyiti@email.cm', 'M'),
+    ('19T8399', 'Tagne', 'Paul', '2008-10-22', 17, 'M. Tagne Robert', '+2376806221259', 'paul.tagne@email.cm', 'M'),
+    ('19T8673', 'Yonta', 'Sophie', '2008-08-03', 17, 'Mme Yonta Marguerite', '+2376806221260', 'sophie.yonta@email.cm', 'F'),
+    ('19T9642', 'Biyiti', 'Yann', '2008-08-02', 17, 'M. Biyiti Bernard', '+2376806221261', 'yann.biyiti@email.cm', 'M'),
+    ('19T2770', 'Wamba', 'Nina', '2008-04-19', 18, 'Mme Wamba Cécile', '+2376806221262', 'nina.wamba@email.cm', 'F'),
+    ('19T2775', 'Mengue', 'Grace', '2008-09-19', 18, 'Mme Mengue Suzanne', '+2376806221263', 'grace.mengue@email.cm', 'F'),
+    ('19T4254', 'Paho', 'Alice', '2008-01-21', 18, 'Mme Paho Cécile', '+2376806221264', 'alice.paho@email.cm', 'F'),
+    ('19T4686', 'Mekongo', 'Junior', '2008-12-05', 18, 'M. Mekongo Jean', '+2376806221265', 'junior.mekongo@email.cm', 'M'),
+    ('19T5002', 'Mekongo', 'Christian', '2008-04-09', 18, 'M. Mekongo Patrick', '+2376806221266', 'christian.mekongo@email.cm', 'M'),
+    ('19T5802', 'Mbah', 'Sarah', '2008-12-19', 18, 'M. Mbah Michel', '+2376806221267', 'sarah.mbah@email.cm', 'M'),
+    ('19T6376', 'Biyiti', 'Max', '2008-10-05', 18, 'M. Biyiti Paul', '+2376806221268', 'max.biyiti@email.cm', 'M'),
+    ('19T6962', 'Mengue', 'Yann', '2008-04-16', 18, 'M. Mengue Jean', '+2376806221269', 'yann.mengue@email.cm', 'M'),
+    ('19T6989', 'Balla', 'Yann', '2008-09-26', 18, 'M. Balla Bernard', '+2376806221270', 'yann.balla@email.cm', 'M'),
+    ('19T7314', 'Tchinda', 'Grace', '2008-09-23', 18, 'Mme Tchinda Cécile', '+2376806221271', 'grace.tchinda@email.cm', 'F'),
+    ('19T7770', 'Yonta', 'Lea', '2008-12-24', 18, 'Mme Yonta Marguerite', '+2376806221272', 'lea.yonta@email.cm', 'F'),
+    ('19T8334', 'Kouam', 'Brice', '2008-06-07', 18, 'M. Kouam André', '+2376806221273', 'brice.kouam@email.cm', 'M'),
+    ('19T9947', 'WILLIAM', 'MELI', '2008-03-05', 18, 'M. William François', '+2376806221274', 'meli.william@email.cm', 'M');
+
+-- ---------------------------------------------------------
+-- 3. Notes (Terminale C — trimestre 1 et 2 — 216 relevés)
+-- ---------------------------------------------------------
+INSERT INTO note_eleve (eleve_id, matiere, coefficient, notes_valeur, trimestre, prof_saisie) VALUES
+    (236, 'Mathematiques', 6, 10.59, 1, 'M. Biyong'),
+    (236, 'Informatique', 3, 8.93, 1, 'M. Owona'),
+    (236, 'Physique', 4, 14.20, 1, 'M. Fouda'),
+    (236, 'Chimie', 3, 12.64, 1, 'Mme Essama'),
+    (236, 'SVT', 2, 9.09, 1, 'M. Ondoa'),
+    (236, 'Philosophie', 1, 9.80, 1, 'M. Noa'),
+    (236, 'Histoire-Geo', 2, 7.08, 1, 'M. Mbarga'),
+    (236, 'Anglais', 3, 13.00, 1, 'Mme Ngono'),
+    (236, 'Francais', 2, 10.20, 1, 'Mme Bella'),
+    (236, 'Mathematiques', 6, 11.69, 2, 'M. Biyong'),
+    (236, 'Informatique', 3, 14.78, 2, 'M. Owona'),
+    (236, 'Physique', 4, 9.08, 2, 'M. Fouda'),
+    (236, 'Chimie', 3, 14.21, 2, 'Mme Essama'),
+    (236, 'SVT', 2, 7.09, 2, 'M. Ondoa'),
+    (236, 'Philosophie', 1, 14.65, 2, 'M. Noa'),
+    (236, 'Histoire-Geo', 2, 14.93, 2, 'M. Mbarga'),
+    (236, 'Anglais', 3, 14.13, 2, 'Mme Ngono'),
+    (236, 'Francais', 2, 11.13, 2, 'Mme Bella'),
+    (237, 'Mathematiques', 6, 14.59, 1, 'M. Biyong'),
+    (237, 'Informatique', 3, 14.63, 1, 'M. Owona'),
+    (237, 'Physique', 4, 11.14, 1, 'M. Fouda'),
+    (237, 'Chimie', 3, 8.90, 1, 'Mme Essama'),
+    (237, 'SVT', 2, 7.61, 1, 'M. Ondoa'),
+    (237, 'Philosophie', 1, 7.96, 1, 'M. Noa'),
+    (237, 'Histoire-Geo', 2, 12.09, 1, 'M. Mbarga'),
+    (237, 'Anglais', 3, 9.53, 1, 'Mme Ngono'),
+    (237, 'Francais', 2, 12.08, 1, 'Mme Bella'),
+    (237, 'Mathematiques', 6, 13.28, 2, 'M. Biyong'),
+    (237, 'Informatique', 3, 10.48, 2, 'M. Owona'),
+    (237, 'Physique', 4, 8.85, 2, 'M. Fouda'),
+    (237, 'Chimie', 3, 15.80, 2, 'Mme Essama'),
+    (237, 'SVT', 2, 12.98, 2, 'M. Ondoa'),
+    (237, 'Philosophie', 1, 15.39, 2, 'M. Noa'),
+    (237, 'Histoire-Geo', 2, 7.75, 2, 'M. Mbarga'),
+    (237, 'Anglais', 3, 9.41, 2, 'Mme Ngono'),
+    (237, 'Francais', 2, 11.72, 2, 'Mme Bella'),
+    (238, 'Mathematiques', 6, 13.55, 1, 'M. Biyong'),
+    (238, 'Informatique', 3, 12.37, 1, 'M. Owona'),
+    (238, 'Physique', 4, 14.46, 1, 'M. Fouda'),
+    (238, 'Chimie', 3, 8.96, 1, 'Mme Essama'),
+    (238, 'SVT', 2, 11.11, 1, 'M. Ondoa'),
+    (238, 'Philosophie', 1, 14.13, 1, 'M. Noa'),
+    (238, 'Histoire-Geo', 2, 9.78, 1, 'M. Mbarga'),
+    (238, 'Anglais', 3, 15.28, 1, 'Mme Ngono'),
+    (238, 'Francais', 2, 6.85, 1, 'Mme Bella'),
+    (238, 'Mathematiques', 6, 9.59, 2, 'M. Biyong'),
+    (238, 'Informatique', 3, 13.44, 2, 'M. Owona'),
+    (238, 'Physique', 4, 8.16, 2, 'M. Fouda'),
+    (238, 'Chimie', 3, 15.36, 2, 'Mme Essama'),
+    (238, 'SVT', 2, 16.67, 2, 'M. Ondoa'),
+    (238, 'Philosophie', 1, 9.32, 2, 'M. Noa'),
+    (238, 'Histoire-Geo', 2, 13.19, 2, 'M. Mbarga'),
+    (238, 'Anglais', 3, 10.75, 2, 'Mme Ngono'),
+    (238, 'Francais', 2, 8.74, 2, 'Mme Bella'),
+    (239, 'Mathematiques', 6, 13.47, 1, 'M. Biyong'),
+    (239, 'Informatique', 3, 13.32, 1, 'M. Owona'),
+    (239, 'Physique', 4, 10.31, 1, 'M. Fouda'),
+    (239, 'Chimie', 3, 16.31, 1, 'Mme Essama'),
+    (239, 'SVT', 2, 10.97, 1, 'M. Ondoa'),
+    (239, 'Philosophie', 1, 10.95, 1, 'M. Noa'),
+    (239, 'Histoire-Geo', 2, 13.77, 1, 'M. Mbarga'),
+    (239, 'Anglais', 3, 13.84, 1, 'Mme Ngono'),
+    (239, 'Francais', 2, 7.46, 1, 'Mme Bella'),
+    (239, 'Mathematiques', 6, 10.32, 2, 'M. Biyong'),
+    (239, 'Informatique', 3, 15.89, 2, 'M. Owona'),
+    (239, 'Physique', 4, 8.42, 2, 'M. Fouda'),
+    (239, 'Chimie', 3, 16.41, 2, 'Mme Essama'),
+    (239, 'SVT', 2, 8.79, 2, 'M. Ondoa'),
+    (239, 'Philosophie', 1, 9.91, 2, 'M. Noa'),
+    (239, 'Histoire-Geo', 2, 11.94, 2, 'M. Mbarga'),
+    (239, 'Anglais', 3, 11.80, 2, 'Mme Ngono'),
+    (239, 'Francais', 2, 11.78, 2, 'Mme Bella'),
+    (240, 'Mathematiques', 6, 9.91, 1, 'M. Biyong'),
+    (240, 'Informatique', 3, 13.06, 1, 'M. Owona'),
+    (240, 'Physique', 4, 8.81, 1, 'M. Fouda'),
+    (240, 'Chimie', 3, 15.89, 1, 'Mme Essama'),
+    (240, 'SVT', 2, 11.39, 1, 'M. Ondoa'),
+    (240, 'Philosophie', 1, 7.86, 1, 'M. Noa'),
+    (240, 'Histoire-Geo', 2, 11.01, 1, 'M. Mbarga'),
+    (240, 'Anglais', 3, 8.60, 1, 'Mme Ngono'),
+    (240, 'Francais', 2, 9.33, 1, 'Mme Bella'),
+    (240, 'Mathematiques', 6, 11.68, 2, 'M. Biyong'),
+    (240, 'Informatique', 3, 12.33, 2, 'M. Owona'),
+    (240, 'Physique', 4, 10.68, 2, 'M. Fouda'),
+    (240, 'Chimie', 3, 8.10, 2, 'Mme Essama'),
+    (240, 'SVT', 2, 15.12, 2, 'M. Ondoa'),
+    (240, 'Philosophie', 1, 12.84, 2, 'M. Noa'),
+    (240, 'Histoire-Geo', 2, 12.51, 2, 'M. Mbarga'),
+    (240, 'Anglais', 3, 8.62, 2, 'Mme Ngono'),
+    (240, 'Francais', 2, 11.07, 2, 'Mme Bella'),
+    (241, 'Mathematiques', 6, 14.14, 1, 'M. Biyong'),
+    (241, 'Informatique', 3, 13.33, 1, 'M. Owona'),
+    (241, 'Physique', 4, 10.35, 1, 'M. Fouda'),
+    (241, 'Chimie', 3, 13.15, 1, 'Mme Essama'),
+    (241, 'SVT', 2, 9.35, 1, 'M. Ondoa'),
+    (241, 'Philosophie', 1, 10.21, 1, 'M. Noa'),
+    (241, 'Histoire-Geo', 2, 11.90, 1, 'M. Mbarga'),
+    (241, 'Anglais', 3, 12.98, 1, 'Mme Ngono'),
+    (241, 'Francais', 2, 10.08, 1, 'Mme Bella'),
+    (241, 'Mathematiques', 6, 16.76, 2, 'M. Biyong'),
+    (241, 'Informatique', 3, 16.95, 2, 'M. Owona'),
+    (241, 'Physique', 4, 12.69, 2, 'M. Fouda'),
+    (241, 'Chimie', 3, 10.36, 2, 'Mme Essama'),
+    (241, 'SVT', 2, 9.07, 2, 'M. Ondoa'),
+    (241, 'Philosophie', 1, 13.09, 2, 'M. Noa'),
+    (241, 'Histoire-Geo', 2, 11.38, 2, 'M. Mbarga'),
+    (241, 'Anglais', 3, 11.09, 2, 'Mme Ngono'),
+    (241, 'Francais', 2, 17.18, 2, 'Mme Bella'),
+    (242, 'Mathematiques', 6, 13.12, 1, 'M. Biyong'),
+    (242, 'Informatique', 3, 8.42, 1, 'M. Owona'),
+    (242, 'Physique', 4, 15.39, 1, 'M. Fouda'),
+    (242, 'Chimie', 3, 13.16, 1, 'Mme Essama'),
+    (242, 'SVT', 2, 9.03, 1, 'M. Ondoa'),
+    (242, 'Philosophie', 1, 13.36, 1, 'M. Noa'),
+    (242, 'Histoire-Geo', 2, 11.42, 1, 'M. Mbarga'),
+    (242, 'Anglais', 3, 7.40, 1, 'Mme Ngono'),
+    (242, 'Francais', 2, 13.20, 1, 'Mme Bella'),
+    (242, 'Mathematiques', 6, 8.18, 2, 'M. Biyong'),
+    (242, 'Informatique', 3, 13.34, 2, 'M. Owona'),
+    (242, 'Physique', 4, 12.95, 2, 'M. Fouda'),
+    (242, 'Chimie', 3, 11.56, 2, 'Mme Essama'),
+    (242, 'SVT', 2, 13.87, 2, 'M. Ondoa'),
+    (242, 'Philosophie', 1, 10.65, 2, 'M. Noa'),
+    (242, 'Histoire-Geo', 2, 9.45, 2, 'M. Mbarga'),
+    (242, 'Anglais', 3, 12.05, 2, 'Mme Ngono'),
+    (242, 'Francais', 2, 11.60, 2, 'Mme Bella'),
+    (243, 'Mathematiques', 6, 8.57, 1, 'M. Biyong'),
+    (243, 'Informatique', 3, 17.47, 1, 'M. Owona'),
+    (243, 'Physique', 4, 7.47, 1, 'M. Fouda'),
+    (243, 'Chimie', 3, 12.05, 1, 'Mme Essama'),
+    (243, 'SVT', 2, 16.12, 1, 'M. Ondoa'),
+    (243, 'Philosophie', 1, 9.29, 1, 'M. Noa'),
+    (243, 'Histoire-Geo', 2, 15.00, 1, 'M. Mbarga'),
+    (243, 'Anglais', 3, 14.72, 1, 'Mme Ngono'),
+    (243, 'Francais', 2, 10.62, 1, 'Mme Bella'),
+    (243, 'Mathematiques', 6, 13.07, 2, 'M. Biyong'),
+    (243, 'Informatique', 3, 14.87, 2, 'M. Owona'),
+    (243, 'Physique', 4, 7.46, 2, 'M. Fouda'),
+    (243, 'Chimie', 3, 9.24, 2, 'Mme Essama'),
+    (243, 'SVT', 2, 10.63, 2, 'M. Ondoa'),
+    (243, 'Philosophie', 1, 11.94, 2, 'M. Noa'),
+    (243, 'Histoire-Geo', 2, 11.63, 2, 'M. Mbarga'),
+    (243, 'Anglais', 3, 13.49, 2, 'Mme Ngono'),
+    (243, 'Francais', 2, 12.34, 2, 'Mme Bella'),
+    (244, 'Mathematiques', 6, 10.21, 1, 'M. Biyong'),
+    (244, 'Informatique', 3, 9.50, 1, 'M. Owona'),
+    (244, 'Physique', 4, 11.64, 1, 'M. Fouda'),
+    (244, 'Chimie', 3, 13.67, 1, 'Mme Essama'),
+    (244, 'SVT', 2, 9.04, 1, 'M. Ondoa'),
+    (244, 'Philosophie', 1, 10.50, 1, 'M. Noa'),
+    (244, 'Histoire-Geo', 2, 14.79, 1, 'M. Mbarga'),
+    (244, 'Anglais', 3, 14.46, 1, 'Mme Ngono'),
+    (244, 'Francais', 2, 7.61, 1, 'Mme Bella'),
+    (244, 'Mathematiques', 6, 12.21, 2, 'M. Biyong'),
+    (244, 'Informatique', 3, 15.45, 2, 'M. Owona'),
+    (244, 'Physique', 4, 13.24, 2, 'M. Fouda'),
+    (244, 'Chimie', 3, 8.21, 2, 'Mme Essama'),
+    (244, 'SVT', 2, 15.44, 2, 'M. Ondoa'),
+    (244, 'Philosophie', 1, 11.64, 2, 'M. Noa'),
+    (244, 'Histoire-Geo', 2, 11.26, 2, 'M. Mbarga'),
+    (244, 'Anglais', 3, 16.44, 2, 'Mme Ngono'),
+    (244, 'Francais', 2, 15.64, 2, 'Mme Bella'),
+    (245, 'Mathematiques', 6, 9.49, 1, 'M. Biyong'),
+    (245, 'Informatique', 3, 12.51, 1, 'M. Owona'),
+    (245, 'Physique', 4, 15.50, 1, 'M. Fouda'),
+    (245, 'Chimie', 3, 12.88, 1, 'Mme Essama'),
+    (245, 'SVT', 2, 12.00, 1, 'M. Ondoa'),
+    (245, 'Philosophie', 1, 15.97, 1, 'M. Noa'),
+    (245, 'Histoire-Geo', 2, 11.23, 1, 'M. Mbarga'),
+    (245, 'Anglais', 3, 10.59, 1, 'Mme Ngono'),
+    (245, 'Francais', 2, 12.59, 1, 'Mme Bella'),
+    (245, 'Mathematiques', 6, 7.03, 2, 'M. Biyong'),
+    (245, 'Informatique', 3, 12.19, 2, 'M. Owona'),
+    (245, 'Physique', 4, 14.03, 2, 'M. Fouda'),
+    (245, 'Chimie', 3, 12.29, 2, 'Mme Essama'),
+    (245, 'SVT', 2, 15.28, 2, 'M. Ondoa'),
+    (245, 'Philosophie', 1, 13.09, 2, 'M. Noa'),
+    (245, 'Histoire-Geo', 2, 13.60, 2, 'M. Mbarga'),
+    (245, 'Anglais', 3, 13.93, 2, 'Mme Ngono'),
+    (245, 'Francais', 2, 8.72, 2, 'Mme Bella'),
+    (246, 'Mathematiques', 6, 12.51, 1, 'M. Biyong'),
+    (246, 'Informatique', 3, 12.55, 1, 'M. Owona'),
+    (246, 'Physique', 4, 11.29, 1, 'M. Fouda'),
+    (246, 'Chimie', 3, 10.97, 1, 'Mme Essama'),
+    (246, 'SVT', 2, 10.18, 1, 'M. Ondoa'),
+    (246, 'Philosophie', 1, 13.01, 1, 'M. Noa'),
+    (246, 'Histoire-Geo', 2, 14.21, 1, 'M. Mbarga'),
+    (246, 'Anglais', 3, 8.86, 1, 'Mme Ngono'),
+    (246, 'Francais', 2, 12.14, 1, 'Mme Bella'),
+    (246, 'Mathematiques', 6, 12.01, 2, 'M. Biyong'),
+    (246, 'Informatique', 3, 12.39, 2, 'M. Owona'),
+    (246, 'Physique', 4, 10.00, 2, 'M. Fouda'),
+    (246, 'Chimie', 3, 10.15, 2, 'Mme Essama'),
+    (246, 'SVT', 2, 8.78, 2, 'M. Ondoa'),
+    (246, 'Philosophie', 1, 15.63, 2, 'M. Noa'),
+    (246, 'Histoire-Geo', 2, 15.09, 2, 'M. Mbarga'),
+    (246, 'Anglais', 3, 10.57, 2, 'Mme Ngono'),
+    (246, 'Francais', 2, 7.30, 2, 'Mme Bella'),
+    (247, 'Mathematiques', 6, 11.62, 1, 'M. Biyong'),
+    (247, 'Informatique', 3, 12.68, 1, 'M. Owona'),
+    (247, 'Physique', 4, 10.06, 1, 'M. Fouda'),
+    (247, 'Chimie', 3, 13.37, 1, 'Mme Essama'),
+    (247, 'SVT', 2, 12.33, 1, 'M. Ondoa'),
+    (247, 'Philosophie', 1, 8.91, 1, 'M. Noa'),
+    (247, 'Histoire-Geo', 2, 11.94, 1, 'M. Mbarga'),
+    (247, 'Anglais', 3, 15.11, 1, 'Mme Ngono'),
+    (247, 'Francais', 2, 11.72, 1, 'Mme Bella'),
+    (247, 'Mathematiques', 6, 7.50, 2, 'M. Biyong'),
+    (247, 'Informatique', 3, 9.85, 2, 'M. Owona'),
+    (247, 'Physique', 4, 12.28, 2, 'M. Fouda'),
+    (247, 'Chimie', 3, 11.73, 2, 'Mme Essama'),
+    (247, 'SVT', 2, 10.49, 2, 'M. Ondoa'),
+    (247, 'Philosophie', 1, 10.56, 2, 'M. Noa'),
+    (247, 'Histoire-Geo', 2, 10.61, 2, 'M. Mbarga'),
+    (247, 'Anglais', 3, 14.72, 2, 'Mme Ngono'),
+    (247, 'Francais', 2, 8.66, 2, 'Mme Bella')
+
+
+
+-- ---------------------------------------------------------
+-- 4. Absences (à générer via l'application)
+-- ---------------------------------------------------------
+-- Les absences sont gérées depuis l'interface de l'application.
+-- Aucune donnée pré-remplie pour éviter les références invalides
+-- après réinitialisation des IDs élèves.
+
+
+-- ---------------------------------------------------------
+-- 5. Utilisateurs (hash BCrypt pour "Password1!")
+-- ---------------------------------------------------------
+INSERT INTO utilisateurs (login, password_hache, role) VALUES
+    ('admin',         '$2a$12$nLWr8kHeY8X8f1yagBu1y.vNnm9WomsgD2MFn/p78WE8OMMjUIQqG', 'Admin'),
+    ('censeur',       '$2a$12$C6PFTKPwyBT/aieyhkCKO.HId3mOiTygsv1v.3jvZHU/96Z9OrVfi', 'Censeur'),
+    ('surveillant',   '$2a$12$6IKzDXy5u7pfXBPRrc4xieVs38JPu9sb2gG.6gnZ2hiWWAb/6SVtO', 'Surveillant');
+
+-- ---------------------------------------------------------
+-- 6. Paramètres de l'établissement (ligne unique)
+-- ---------------------------------------------------------
+INSERT INTO parametre (id, etablissement, annee_scolaire, logo_filename, devise,
+                       ville, telephone, email, site_web,
+                       republique, ministere, delegation, entete_pdf, filigrane_logo)
+VALUES (
+    1,
+    'Lycée de Démonstration',
+    '2025-2026',
+    '',
+    'VÉRITÉ - TRAVAIL - SOLIDARITÉ',
+    'Yaoundé',
+    '+237 222 22 22 22',
+    'contact@lyceededemo.cm',
+    'www.lyceededemo.cm',
+    'RÉPUBLIQUE DU CAMEROUN',
+    'MINISTÈRE DES ENSEIGNEMENTS SECONDAIRES',
+    'DÉLÉGATION RÉGIONALE DU CENTRE',
+    'RÉPUBLIQUE DU CAMEROUN\nMINISTÈRE DES ENSEIGNEMENTS SECONDAIRES\nDÉLÉGATION RÉGIONALE DU CENTRE',
+    FALSE
+)
+ON DUPLICATE KEY UPDATE id = id;

@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="ctx" content="${pageContext.request.contextPath}">
-    <title>${param.title} | Lycée Management</title>
+    <title>${param.title} | <c:out value="${not empty etablissement.etablissement ? etablissement.etablissement : 'Lycée Admin'}"/></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/static/css/style.css">
@@ -19,10 +19,18 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
                 <div class="sidebar-brand-icon">
-                    <span class="material-symbols-outlined">school</span>
+                    <c:choose>
+                        <c:when test="${not empty etablissement.logoFilename}">
+                            <img src="${pageContext.request.contextPath}/assets/${etablissement.logoFilename}"
+                                 alt="Logo" style="max-height:32px; max-width:32px; border-radius:6px;"/>
+                        </c:when>
+                        <c:otherwise>
+                            <span class="material-symbols-outlined">school</span>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
                 <div class="sidebar-brand-text">
-                    <span class="sidebar-brand-title">Lycée Admin</span>
+                    <span class="sidebar-brand-title"><c:out value="${not empty etablissement.etablissement ? etablissement.etablissement : 'Lycée Admin'}"/></span>
                     <span class="sidebar-brand-sub">Gestion scolaire</span>
                 </div>
             </div>

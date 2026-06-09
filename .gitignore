@@ -48,3 +48,6 @@ log/
 
 # Server
 /opt/apache-tomcat-11.0.21/
+generate_pptx.py
+gen_eleves.py
+presentation.pptx

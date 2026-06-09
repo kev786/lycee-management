@@ -1,6 +1,5 @@
 package com.lycee.servlet;
 
-import com.lycee.util.AuthUtil;
 import com.lycee.util.Constants;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -14,7 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /** Sert les assets institutionnels (logo) stockés hors webapp. */
-@WebServlet("/app/assets/*")
+@WebServlet("/assets/*")
 public class AssetServlet extends HttpServlet {
 
     private static final String SAFE_FILENAME = "^[a-zA-Z0-9\\-]+\\.(png|jpg|jpeg|gif|webp)$";
@@ -22,11 +21,6 @@ public class AssetServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-
-        if (!AuthUtil.isAdmin(AuthUtil.getRole(req))) {
-            resp.sendError(HttpServletResponse.SC_FORBIDDEN);
-            return;
-        }
 
         String pathInfo = req.getPathInfo();
         if (pathInfo == null || pathInfo.length() <= 1) {
