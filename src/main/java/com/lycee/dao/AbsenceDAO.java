@@ -17,6 +17,12 @@ public interface AbsenceDAO {
     /** Total heures d'absences injustifiées par élève et trimestre */
     int countAbsencesInjustifieesParEleve(Long eleveId, int trimestre) throws SQLException;
 
+    /** Total heures d'absences injustifiées par élève (tous trimestres) */
+    int countAbsencesInjustifieesAnnuel(Long eleveId) throws SQLException;
+
+    /** Total heures d'absences injustifiées par élève (tous trimestres) */
+    int sumHeuresInjustifieesAnnuel(Long eleveId) throws SQLException;
+
     /** Taux d'absentéisme par classe */
     List<Map<String, Object>> getTauxAbsenteismeParClasse() throws SQLException;
 

@@ -244,6 +244,54 @@ public class NoteDAOImpl implements NoteDAO {
     }
 
     @Override
+    public BigDecimal getMoyenneAnnuelle(Long eleveId) throws SQLException {
+        // Moyenne des moyennes de chaque trimestre disponible
+        String sql =
+            "SELECT AVG(sub.moy) AS moyenne_annuelle FROM (" +
+            "  SELECT SUM(notes_valeur * coefficient) / SUM(coefficient) AS moy" +
+            "  FROM note_eleve WHERE eleve_id = ?" +
+            "  GROUP BY trimestre" +
+            ") sub";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, eleveId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal m = rs.getBigDecimal("moyenne_annuelle");
+                    return m != null ? m.setScale(2, java.math.RoundingMode.HALF_UP) : BigDecimal.ZERO;
+                }
+            }
+        }
+        return BigDecimal.ZERO;
+    }
+
+    @Override
+    public int countTrimestresWithNotes(Long eleveId) throws SQLException {
+        String sql = "SELECT COUNT(DISTINCT trimestre) FROM note_eleve WHERE eleve_id = ?";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, eleveId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    @Override
+    public int getSommeCoefficients(Long eleveId, int trimestre) throws SQLException {
+        String sql =
+            "SELECT SUM(coefficient) FROM note_eleve WHERE eleve_id = ? AND trimestre = ?";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, eleveId);
+            ps.setInt(2, trimestre);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    @Override
     public BigDecimal getMoyenneClasse(Long classeId, int trimestre) throws SQLException {
         String sql =
             "SELECT AVG(sub.moy) AS moyenne_classe FROM (" +
@@ -285,6 +333,54 @@ public class NoteDAOImpl implements NoteDAO {
                 return rs.next() ? rs.getInt("rang") : 0;
             }
         }
+    }
+
+    @Override
+    public int getRangAnnuel(Long eleveId, Long classeId) throws SQLException {
+        String sql =
+            "SELECT rang FROM (" +
+            "  SELECT eleve_id," +
+            "    RANK() OVER (ORDER BY AVG(moy) DESC) AS rang" +
+            "  FROM (" +
+            "    SELECT n.eleve_id, n.trimestre," +
+            "      SUM(n.notes_valeur * n.coefficient) / SUM(n.coefficient) AS moy" +
+            "    FROM note_eleve n JOIN eleve e ON n.eleve_id = e.id" +
+            "    WHERE e.classe_id = ?" +
+            "    GROUP BY n.eleve_id, n.trimestre" +
+            "  ) sub GROUP BY eleve_id" +
+            ") rankings WHERE eleve_id = ?";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, classeId);
+            ps.setLong(2, eleveId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt("rang") : 0;
+            }
+        }
+    }
+
+    @Override
+    public BigDecimal getMoyenneClasseAnnuelle(Long classeId) throws SQLException {
+        String sql =
+            "SELECT AVG(ann.moy) FROM (" +
+            "  SELECT AVG(sub.moy) AS moy FROM (" +
+            "    SELECT n.eleve_id, SUM(n.notes_valeur * n.coefficient) / SUM(n.coefficient) AS moy" +
+            "    FROM note_eleve n JOIN eleve e ON n.eleve_id = e.id" +
+            "    WHERE e.classe_id = ?" +
+            "    GROUP BY n.eleve_id, n.trimestre" +
+            "  ) sub GROUP BY sub.eleve_id" +
+            ") ann";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, classeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal m = rs.getBigDecimal(1);
+                    return m != null ? m.setScale(2, java.math.RoundingMode.HALF_UP) : BigDecimal.ZERO;
+                }
+            }
+        }
+        return BigDecimal.ZERO;
     }
 
     @Override

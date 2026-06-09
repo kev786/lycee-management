@@ -52,6 +52,33 @@
         </form>
     </div>
 
+    <!-- Carte Bulletin Annuel -->
+    <div class="card" style="padding:24px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+            <div style="width:40px; height:40px; border-radius:10px; background:rgba(21,101,192,0.1); color:var(--primary); display:flex; align-items:center; justify-content:center;">
+                <span class="material-symbols-outlined">auto_stories</span>
+            </div>
+            <h3 style="font-size:18px; font-weight:700; color:var(--on-surface);">Bulletin Annuel</h3>
+        </div>
+        <form action="${pageContext.request.contextPath}/app/pdf/bulletin-annuel" method="get" target="_blank">
+            <div class="input-group">
+                <label class="label" for="annuel-eleve">Élève</label>
+                <div class="input-wrapper">
+                    <span class="material-symbols-outlined input-icon">person</span>
+                    <select id="annuel-eleve" name="eleveId" class="input-field" required>
+                        <option value="">Sélectionner un élève...</option>
+                        <c:forEach var="e" items="${eleves}">
+                            <option value="${e.id}">${e.nom} ${e.prenom} (${e.matricule})</option>
+                        </c:forEach>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                <span class="material-symbols-outlined">download</span> Générer le Bulletin Annuel
+            </button>
+        </form>
+    </div>
+
     <!-- Carte Bulletins par classe -->
     <div class="card" style="padding:24px;">
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
@@ -80,6 +107,30 @@
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
                 <span class="material-symbols-outlined">download</span> Télécharger tous les bulletins
+            </button>
+        </form>
+    </div>
+
+    <!-- Carte Bulletins Annuels par Classe -->
+    <div class="card" style="padding:24px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+            <div style="width:40px; height:40px; border-radius:10px; background:rgba(99,102,241,0.1); color:var(--accent); display:flex; align-items:center; justify-content:center;">
+                <span class="material-symbols-outlined">folder_zip</span>
+            </div>
+            <h3 style="font-size:18px; font-weight:700; color:var(--on-surface);">Bulletins Annuels par Classe (ZIP)</h3>
+        </div>
+        <form action="${pageContext.request.contextPath}/app/pdf/bulletin-annuel-classe" method="get">
+            <div class="input-group">
+                <label class="label" for="annuel-bulk-classe">Classe</label>
+                <select id="annuel-bulk-classe" name="classeId" class="input-field" required>
+                    <option value="">Sélectionner une classe...</option>
+                    <c:forEach var="c" items="${classes}">
+                        <option value="${c.id}">${c.libelle}</option>
+                    </c:forEach>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                <span class="material-symbols-outlined">download</span> Télécharger tous les bulletins annuels
             </button>
         </form>
     </div>

@@ -208,6 +208,30 @@ public class AbsenceDAOImpl implements AbsenceDAO {
     }
 
     @Override
+    public int countAbsencesInjustifieesAnnuel(Long eleveId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM absence WHERE eleve_id=? AND justifiee=FALSE";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, eleveId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    @Override
+    public int sumHeuresInjustifieesAnnuel(Long eleveId) throws SQLException {
+        String sql = "SELECT COALESCE(SUM(duree_heures), 0) FROM absence WHERE eleve_id=? AND justifiee=FALSE";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, eleveId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    @Override
     public List<Map<String, Object>> getTauxAbsenteismeParClasse() throws SQLException {
         // Hypothèse : 30 heures de cours par semaine, 36 semaines = 1080h/an
         int heuresTotales = 1080;

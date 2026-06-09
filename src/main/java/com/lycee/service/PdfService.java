@@ -27,6 +27,43 @@ import java.util.Map;
 
 public class PdfService {
 
+    public byte[] genererBulletinAnnuel(
+            ParametresEtablissement params, Eleve eleve,
+            BigDecimal moyT1, BigDecimal moyT2, BigDecimal moyT3,
+            int sommeCoefT1, int sommeCoefT2, int sommeCoefT3,
+            BigDecimal moyenneAnnuelle, int rang, int effectif,
+            int nbTrimestres, int nbAbsInjustifiees, int heuresAbsInjustifiees)
+            throws java.io.IOException {
+        if (params == null) params = new ParametresEtablissement();
+
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (PdfWriter writer = new PdfWriter(bos);
+             PdfDocument pdf = new PdfDocument(writer);
+             Document doc = new Document(pdf, PageSize.A4)) {
+
+            doc.setMargins(40, 40, 50, 40);
+            PdfLayoutHelper.preparerPdf(pdf, params);
+
+            String annee = params.getAnneeScolaire();
+            if (eleve.getClasse() != null && eleve.getClasse().getAnneeScolaire() != null) {
+                annee = eleve.getClasse().getAnneeScolaire();
+            }
+            PdfLayoutHelper.addEnteteInstitutionnel(doc, params, "BULLETIN ANNUEL", "Année scolaire : " + annee);
+
+            doc.add(buildIdentiteEleve(eleve));
+            doc.add(new Paragraph(" "));
+
+            doc.add(buildTableauTrimestres(
+                moyT1, moyT2, moyT3, sommeCoefT1, sommeCoefT2, sommeCoefT3, nbTrimestres));
+
+            doc.add(new Paragraph(" "));
+            doc.add(buildResumeAnnuel(moyenneAnnuelle, rang, effectif,
+                nbAbsInjustifiees, heuresAbsInjustifiees));
+            PdfLayoutHelper.addSignature(doc, "Le Censeur");
+        }
+        return bos.toByteArray();
+    }
+
     public byte[] genererBulletin(ParametresEtablissement params, Eleve eleve, List<NoteEleve> notes,
                                    BigDecimal moyenne, int rang, int effectif, int trimestre,
                                    BigDecimal moyenneClasse, int nbAbsInjustifiees,
@@ -172,6 +209,56 @@ public class PdfService {
         resume.addCell(PdfLayoutHelper.labelCell("Appréciation générale"));
         resume.addCell(PdfLayoutHelper.valueCell(PdfLayoutHelper.appreciationGenerale(moyenne)));
         resume.addCell(PdfLayoutHelper.labelCell("Absences injustifiées (T" + trimestre + ")"));
+        String absTxt = nbAbsInjustifiees + " séance(s) — " + heuresAbsInjustifiees + " h";
+        Cell absCell = PdfLayoutHelper.valueCell(absTxt);
+        if (heuresAbsInjustifiees >= 8) absCell.setFontColor(PdfLayoutHelper.ROUGE);
+        resume.addCell(absCell);
+        return resume;
+    }
+
+    private Table buildTableauTrimestres(
+            BigDecimal moyT1, BigDecimal moyT2, BigDecimal moyT3,
+            int coefT1, int coefT2, int coefT3, int nbTrimestres) {
+        Table t = PdfLayoutHelper.createTable(3, 2, 1);
+        t.addCell(PdfLayoutHelper.labelCell("Trimestre"));
+        t.addCell(PdfLayoutHelper.labelCell("Moyenne"));
+        t.addCell(PdfLayoutHelper.labelCell("Total Coef."));
+        if (nbTrimestres >= 1) {
+            t.addCell(PdfLayoutHelper.valueCell("1er Trimestre"));
+            t.addCell(PdfLayoutHelper.valueCell(PdfLayoutHelper.formatNote(moyT1)));
+            t.addCell(PdfLayoutHelper.valueCell(String.valueOf(coefT1)));
+        }
+        if (nbTrimestres >= 2) {
+            t.addCell(PdfLayoutHelper.valueCell("2ème Trimestre"));
+            t.addCell(PdfLayoutHelper.valueCell(PdfLayoutHelper.formatNote(moyT2)));
+            t.addCell(PdfLayoutHelper.valueCell(String.valueOf(coefT2)));
+        }
+        if (nbTrimestres >= 3) {
+            t.addCell(PdfLayoutHelper.valueCell("3ème Trimestre"));
+            t.addCell(PdfLayoutHelper.valueCell(PdfLayoutHelper.formatNote(moyT3)));
+            t.addCell(PdfLayoutHelper.valueCell(String.valueOf(coefT3)));
+        }
+        return t;
+    }
+
+    private Table buildResumeAnnuel(BigDecimal moyenneAnnuelle, int rang, int effectif,
+                                     int nbAbsInjustifiees, int heuresAbsInjustifiees) {
+        boolean reussite = moyenneAnnuelle != null && moyenneAnnuelle.compareTo(BigDecimal.TEN) >= 0;
+        Table resume = PdfLayoutHelper.createTable(2, 4);
+        resume.addCell(PdfLayoutHelper.labelCell("Moyenne annuelle"));
+        Cell moyCell = new Cell().add(new Paragraph(PdfLayoutHelper.formatNote(moyenneAnnuelle)).setBold().setFontSize(11));
+        moyCell.setFontColor(reussite ? PdfLayoutHelper.VERT : PdfLayoutHelper.ROUGE);
+        moyCell.setBackgroundColor(reussite ? PdfLayoutHelper.HIGHLIGHT_OK : PdfLayoutHelper.HIGHLIGHT_FAIL);
+        resume.addCell(moyCell);
+        resume.addCell(PdfLayoutHelper.labelCell("Rang / Effectif"));
+        resume.addCell(PdfLayoutHelper.valueCell(rang + " / " + effectif));
+        resume.addCell(PdfLayoutHelper.labelCell("Décision"));
+        Cell decCell = new Cell().add(new Paragraph(PdfLayoutHelper.decision(moyenneAnnuelle)).setBold());
+        decCell.setFontColor(reussite ? PdfLayoutHelper.VERT : PdfLayoutHelper.ROUGE);
+        resume.addCell(decCell);
+        resume.addCell(PdfLayoutHelper.labelCell("Appréciation générale"));
+        resume.addCell(PdfLayoutHelper.valueCell(PdfLayoutHelper.appreciationGenerale(moyenneAnnuelle)));
+        resume.addCell(PdfLayoutHelper.labelCell("Absences injustifiées (annuel)"));
         String absTxt = nbAbsInjustifiees + " séance(s) — " + heuresAbsInjustifiees + " h";
         Cell absCell = PdfLayoutHelper.valueCell(absTxt);
         if (heuresAbsInjustifiees >= 8) absCell.setFontColor(PdfLayoutHelper.ROUGE);

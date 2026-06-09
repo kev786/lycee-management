@@ -20,11 +20,26 @@ public interface NoteDAO {
     /** Moyenne pondérée d'un élève pour un trimestre */
     BigDecimal getMoyenneEleve(Long eleveId, int trimestre) throws SQLException;
 
+    /** Moyenne annuelle = moyenne des moyennes de chaque trimestre disponible */
+    BigDecimal getMoyenneAnnuelle(Long eleveId) throws SQLException;
+
+    /** Nombre de trimestres où l'élève a des notes (1, 2 ou 3) */
+    int countTrimestresWithNotes(Long eleveId) throws SQLException;
+
+    /** Somme des coefficients d'un élève pour un trimestre donné */
+    int getSommeCoefficients(Long eleveId, int trimestre) throws SQLException;
+
     /** Moyenne pondérée de la classe pour un trimestre */
     BigDecimal getMoyenneClasse(Long classeId, int trimestre) throws SQLException;
 
     /** Rang d'un élève dans sa classe pour un trimestre */
     int getRangEleve(Long eleveId, Long classeId, int trimestre) throws SQLException;
+
+    /** Rang annuel d'un élève dans sa classe (basé sur la moyenne annuelle) */
+    int getRangAnnuel(Long eleveId, Long classeId) throws SQLException;
+
+    /** Moyenne annuelle de la classe */
+    BigDecimal getMoyenneClasseAnnuelle(Long classeId) throws SQLException;
 
     /** Moyenne par classe et trimestre */
     List<Map<String, Object>> getMoyennesParClasse(int trimestre) throws SQLException;
