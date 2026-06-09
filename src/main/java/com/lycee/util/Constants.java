@@ -1,7 +1,27 @@
 package com.lycee.util;
 
+import java.io.InputStream;
+import java.util.Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public final class Constants {
-    
+
+    private static final Logger LOG = LoggerFactory.getLogger(Constants.class);
+    private static final Properties props = new Properties();
+
+    static {
+        try (InputStream input = Constants.class.getClassLoader().getResourceAsStream("db.properties")) {
+            if (input != null) {
+                props.load(input);
+            } else {
+                LOG.warn("db.properties introuvable, chemins par défaut utilisés");
+            }
+        } catch (Exception e) {
+            LOG.error("Erreur chargement db.properties", e);
+        }
+    }
+
     private Constants() {}
 
     // Routes
@@ -37,13 +57,13 @@ public final class Constants {
     public static final String PARAM_DATE_ABSENCE   = "dateAbsence";
     public static final String PARAM_TRIMESTRE      = "trimestre";
 
-
     // Validation messages
     public static final String VAL_OBLIGATOIRE      = "Obligatoire";
 
-    // Stockage fichiers (hors webapp)
-    public static final String UPLOAD_DIR_PHOTOS    = "/opt/lycee/photos";
-    public static final String UPLOAD_DIR_ASSETS    = "/opt/lycee/assets";
+    // Stockage fichiers (lu depuis db.properties, fallback vers home)
+    private static final String STORAGE_DIR = props.getProperty("storage.dir", System.getProperty("user.home") + "/lycee_storage");
+    public static final String UPLOAD_DIR_PHOTOS    = STORAGE_DIR + "/photos";
+    public static final String UPLOAD_DIR_ASSETS    = STORAGE_DIR + "/assets";
     public static final String PARAM_LOGO           = "logo";
 
     // Rôles

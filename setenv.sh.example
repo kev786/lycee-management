@@ -1,0 +1,6 @@
+# Configuration Twilio (optionnel — SMS loggués si non configuré)
+# Créez un compte sur https://www.twilio.com/try-twilio
+# Puis copiez ce fichier vers /opt/apache-tomcat-11.0.21/bin/setenv.sh
+export TWILIO_ACCOUNT_SID=votre_account_sid
+export TWILIO_AUTH_TOKEN=votre_auth_token
+export TWILIO_PHONE_FROM=+237XXXXXXXX
