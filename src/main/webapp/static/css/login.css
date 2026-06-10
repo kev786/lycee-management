@@ -4,29 +4,28 @@
 .auth-body {
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     background: #f8f9ff;
 }
 
 .bg-pattern {
-    position: absolute;
+    position: fixed;
     inset: 0;
     z-index: 0;
-    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuCjBddEy4SdFsAf5_QkxbF2mM2rhVz7bMBDs96x-BCr3v1TPcT-xwy9bUgUkQGiP3_uX2FCtMb-49Xwjzbx9JRQL7NM9ebZgQM6MCxvfJvTPEvfHl3J4jX455j3lERu9MPOc2zEV5peYzQOgoYV9_B5ma61GcjLBA43mdcHk5n-YiDp_UjpTjyvGIgo6aSki_099nZtWnQSnIce_z0V8dB8K6jNP7Yili1QyfIpI70bvIKTR6ULDBG1AF_1VbrNOI0wBDwterwOww);
-    background-size: cover;
-    background-position: center;
+    background: linear-gradient(135deg, #002045 0%, #004b93 50%, #1a365d 100%);
 }
 
 .bg-overlay {
-    position: absolute;
+    position: fixed;
     inset: 0;
     z-index: 1;
-    background: rgba(0, 32, 69, 0.2);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .login-card {
@@ -34,13 +33,11 @@
     z-index: 10;
     width: 100%;
     max-width: 480px;
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.92);
     padding: 40px;
     border-radius: 1rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .logo-circle {
@@ -57,25 +54,23 @@
 }
 
 .decoration-blur-1 {
-    position: absolute;
+    position: fixed;
     bottom: -128px;
     right: -128px;
     width: 256px;
     height: 256px;
-    background: rgba(214, 227, 255, 0.1);
-    filter: blur(100px);
+    background: rgba(255, 255, 255, 0.03);
     z-index: 5;
     border-radius: 50%;
 }
 
 .decoration-blur-2 {
-    position: absolute;
+    position: fixed;
     top: -192px;
     left: -192px;
     width: 384px;
     height: 384px;
-    background: rgba(210, 228, 255, 0.1);
-    filter: blur(120px);
+    background: rgba(255, 255, 255, 0.03);
     z-index: 5;
     border-radius: 50%;
 }
@@ -85,7 +80,7 @@
     z-index: 10;
     margin-top: 24px;
     text-align: center;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.7);
     font-size: 12px;
 }
 
@@ -94,10 +89,11 @@
     gap: 16px;
     justify-content: center;
     margin-top: 8px;
+    flex-wrap: wrap;
 }
 
 .footer-links a {
-    color: white;
+    color: rgba(255, 255, 255, 0.7);
     text-decoration: none;
     display: flex;
     align-items: center;
@@ -105,5 +101,69 @@
 }
 
 .footer-links a:hover {
-    color: var(--on-primary-container);
+    color: white;
+}
+
+/* Responsive: ecrans &lt; 600px */
+@media (max-width: 600px) {
+    .auth-body {
+        align-items: flex-start;
+        padding: 16px 0;
+    }
+    .login-card {
+        padding: 24px 20px;
+        border-radius: 0.75rem;
+        margin: 0 12px;
+        max-height: none;
+    }
+    .logo-circle {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 12px;
+    }
+    .logo-circle span {
+        font-size: 30px !important;
+    }
+    .footer-auth {
+        padding: 0 16px;
+    }
+}
+
+/* Tres petits ecrans (&lt; 400px) */
+@media (max-height: 700px) {
+    .auth-body {
+        align-items: flex-start;
+        padding: 12px 0;
+    }
+    .login-card {
+        padding: 20px 16px;
+    }
+    .logo-circle {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 8px;
+    }
+    .logo-circle span {
+        font-size: 24px !important;
+    }
+    .login-card h1 {
+        font-size: 1.25rem !important;
+    }
+    .login-card p {
+        font-size: 0.75rem !important;
+    }
+    /* Reduction des espacements du formulaire */
+    form[method="post"] {
+        gap: 16px !important;
+    }
+    .btn {
+        padding: 12px !important;
+    }
+}
+
+/* Suppression du blur/backdrop sur les navigateurs qui le gere mal */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .login-card {
+        background: rgba(255, 255, 255, 0.97);
+    }
 }

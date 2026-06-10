@@ -3,7 +3,6 @@ package com.lycee.filter;
 import java.io.IOException;
 import java.util.Set;
 
-import com.lycee.model.ParametresEtablissement;
 import com.lycee.service.ParametreService;
 import com.lycee.util.Constants;
 

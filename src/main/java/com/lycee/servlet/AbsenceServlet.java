@@ -113,7 +113,7 @@ public class AbsenceServlet extends HttpServlet {
         try {
             long id = Long.parseLong(path.substring(Constants.ROUTE_MODIFIER.length()));
             sauvegarder(req, resp, id);
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException _) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "ID invalide");
         }
     }
@@ -168,7 +168,7 @@ public class AbsenceServlet extends HttpServlet {
         try {
             String p = req.getParameter(Constants.PARAM_PAGE);
             return (p == null) ? 1 : Math.max(1, Integer.parseInt(p));
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException _) {
             return 1;
         }
     }
@@ -177,7 +177,7 @@ public class AbsenceServlet extends HttpServlet {
         try {
             String s = req.getParameter(Constants.PARAM_SIZE);
             return (s == null) ? DEFAULT_PAGE_SIZE : Math.max(5, Integer.parseInt(s));
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException _) {
             return DEFAULT_PAGE_SIZE;
         }
     }
@@ -234,7 +234,7 @@ public class AbsenceServlet extends HttpServlet {
     private List<Eleve> getElevesSafe() {
         try {
             return eleveDAO.findAll();
-        } catch (java.sql.SQLException e) {
+        } catch (java.sql.SQLException _) {
             return Collections.emptyList();
         }
     }
@@ -247,7 +247,7 @@ public class AbsenceServlet extends HttpServlet {
         a.setDateAbsence(LocalDate.parse(dateStr));
         try {
             a.setDureeHeures(Integer.parseInt(dureeStr));
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException _) {
             a.setDureeHeures(1);
         }
         a.setMatiere(matiere);

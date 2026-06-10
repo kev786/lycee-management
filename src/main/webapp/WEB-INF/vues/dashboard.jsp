@@ -12,10 +12,20 @@
     </div>
     <div style="display:flex; gap:12px;">
         <c:if test="${role == 'Admin' || role == 'Censeur'}">
-            <a href="${pageContext.request.contextPath}/app/eleves/export-csv" class="btn btn-ghost btn-sm" style="text-decoration:none;">
-                <span class="material-symbols-outlined">file_download</span>
-                Exporter
-            </a>
+            <div class="dropdown" style="position:relative;">
+                <button class="btn btn-ghost btn-sm dropdown-trigger" style="text-decoration:none;">
+                    <span class="material-symbols-outlined">file_download</span>
+                    Exporter
+                </button>
+                <div class="dropdown-menu" style="display:none; position:absolute; top:100%; right:0; min-width:180px; background:var(--bg-card); border:1px solid var(--outline-variant); border-radius:12px; box-shadow:var(--shadow-lg); z-index:50; margin-top:4px;">
+                    <a href="${pageContext.request.contextPath}/app/eleves/export-csv" class="dropdown-item" style="display:flex; align-items:center; gap:8px; padding:10px 16px; text-decoration:none; color:var(--on-surface);">
+                        <span class="material-symbols-outlined" style="font-size:18px;">table</span> CSV
+                    </a>
+                    <a href="${pageContext.request.contextPath}/app/excel/eleves" class="dropdown-item" style="display:flex; align-items:center; gap:8px; padding:10px 16px; text-decoration:none; color:var(--on-surface);">
+                        <span class="material-symbols-outlined" style="font-size:18px;">grid_on</span> Excel (.xlsx)
+                    </a>
+                </div>
+            </div>
             <a href="${pageContext.request.contextPath}/app/notes/nouveau" class="btn btn-primary btn-sm" style="text-decoration:none;">
                 <span class="material-symbols-outlined">add</span>
                 Nouvelle saisie
@@ -177,34 +187,24 @@
             <h3 style="font-size:18px; font-weight:700; color:var(--primary);">Absences mensuelles</h3>
             <span style="font-size:10px; font-weight:700; color:var(--primary); letter-spacing:0.05em; padding:4px 10px; border:1px solid var(--outline-variant); border-radius:20px;">5 MOIS</span>
         </div>
-        <div class="chart-container" style="height:160px;">
-            <c:choose>
-                <c:when test="${empty chartAbsences}">
-                    <p style="width:100%;text-align:center;color:var(--on-surface-variant);font-size:13px;padding:40px 0;">Aucune donnée d'absence.</p>
-                </c:when>
-                <c:otherwise>
-                    <c:forEach var="bar" items="${chartAbsences}" varStatus="st">
-                        <c:set var="h" value="${maxHeuresChart > 0 ? bar.heures * 100 / maxHeuresChart : 0}" />
-                        <div class="chart-bar-wrapper">
-                            <div class="chart-bar ${st.last ? 'active' : ''}
-                                <c:choose>
-                                    <c:when test="${h > 70}"> bar-error</c:when>
-                                    <c:when test="${h < 30}"> bar-success</c:when>
-                                    <c:otherwise> bar-default</c:otherwise>
-                                </c:choose>"
-                                data-height="${h}%"></div>
-                            <span class="chart-label">${bar.label}</span>
-                        </div>
-                    </c:forEach>
-                </c:otherwise>
-            </c:choose>
-        </div>
+        <canvas id="absencesChart" style="height:160px; width:100%;"></canvas>
         <div style="margin-top:20px; background:var(--grad-primary); border-radius:12px; padding:16px; color:white;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <p style="font-size:11px; font-weight:600; opacity:0.85;">Heures injustifiées (total)</p>
                 <span style="font-size:18px; font-weight:800;">${totalAbsH} h</span>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="charts-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:24px;">
+    <div class="card" style="padding:20px 24px;">
+        <h3 style="font-size:18px; font-weight:700; color:var(--primary); margin-bottom:16px;">Moyennes par classe</h3>
+        <canvas id="moyennesChart" style="height:250px; width:100%;"></canvas>
+    </div>
+    <div class="card" style="padding:20px 24px;">
+        <h3 style="font-size:18px; font-weight:700; color:var(--primary); margin-bottom:16px;">Répartition des décisions</h3>
+        <canvas id="repartitionChart" style="height:250px; width:100%;"></canvas>
     </div>
 </div>
 

@@ -2,7 +2,6 @@ package com.lycee.servlet;
 
 import com.lycee.dao.UtilisateurDAO;
 import com.lycee.dao.impl.UtilisateurDAOImpl;
-import com.lycee.model.ParametresEtablissement;
 import com.lycee.model.Utilisateur;
 import com.lycee.service.ParametreService;
 import com.lycee.util.Constants;

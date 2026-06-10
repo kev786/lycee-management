@@ -55,4 +55,7 @@ public interface NoteDAO {
 
     /** Dernières notes saisies (pour le tableau de bord) */
     List<Map<String, Object>> findRecentes(int limit) throws SQLException;
+
+    /** Répartition des décisions (Admis/Échec) par trimestre */
+    List<Map<String, Object>> getRepartitionDecisions(int trimestre) throws SQLException;
 }

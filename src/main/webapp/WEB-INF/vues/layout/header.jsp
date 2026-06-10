@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
     <script src="${pageContext.request.contextPath}/static/js/app.js" defer></script>
 </head>
 <body>
@@ -129,6 +130,10 @@
                 </div>
 
                 <div class="topbar-right">
+                    <button type="button" class="topbar-icon-btn" id="dark-toggle" aria-label="Mode sombre" title="Mode sombre">
+                        <span class="material-symbols-outlined dark-icon-light">dark_mode</span>
+                        <span class="material-symbols-outlined dark-icon-dark" style="display:none;">light_mode</span>
+                    </button>
                     <div class="notif-panel" id="notif-panel">
                         <button type="button" class="topbar-icon-btn" id="notif-toggle" aria-label="Notifications">
                             <span class="material-symbols-outlined">notifications</span>
