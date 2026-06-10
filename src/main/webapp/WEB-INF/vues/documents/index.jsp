@@ -79,6 +79,44 @@
         </form>
     </div>
 
+    <!-- Carte Bulletin Excel -->
+    <div class="card" style="padding:24px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+            <div style="width:40px; height:40px; border-radius:10px; background:rgba(21,101,192,0.1); color:var(--primary); display:flex; align-items:center; justify-content:center;">
+                <span class="material-symbols-outlined">grid_on</span>
+            </div>
+            <h3 style="font-size:18px; font-weight:700; color:var(--on-surface);">Bulletin Excel</h3>
+        </div>
+        <form action="${pageContext.request.contextPath}/app/excel/bulletin" method="get">
+            <div class="input-group">
+                <label class="label" for="excel-eleve">Élève</label>
+                <div class="input-wrapper">
+                    <span class="material-symbols-outlined input-icon">person</span>
+                    <select id="excel-eleve" name="eleveId" class="input-field" required>
+                        <option value="">Sélectionner un élève...</option>
+                        <c:forEach var="e" items="${eleves}">
+                            <option value="${e.id}">${e.nom} ${e.prenom} (${e.matricule})</option>
+                        </c:forEach>
+                    </select>
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="label" for="excel-trimestre">Trimestre</label>
+                <div class="input-wrapper">
+                    <span class="material-symbols-outlined input-icon">calendar_month</span>
+                    <select id="excel-trimestre" name="trimestre" class="input-field" required>
+                        <option value="1">1er Trimestre</option>
+                        <option value="2">2ème Trimestre</option>
+                        <option value="3">3ème Trimestre</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                <span class="material-symbols-outlined">download</span> Télécharger Bulletin Excel
+            </button>
+        </form>
+    </div>
+
     <!-- Carte Bulletins par classe -->
     <div class="card" style="padding:24px;">
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">

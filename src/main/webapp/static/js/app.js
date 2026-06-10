@@ -208,6 +208,21 @@ const LyceeAdmin = {
         document.addEventListener('click', () => {
             document.querySelectorAll('.action-menu.open').forEach(m => m.classList.remove('open'));
         });
+        document.querySelectorAll('.dropdown-trigger').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const menu = btn.nextElementSibling;
+                if (menu && menu.classList.contains('dropdown-menu')) {
+                    document.querySelectorAll('.dropdown-menu').forEach(m => {
+                        if (m !== menu) m.style.display = 'none';
+                    });
+                    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                }
+            });
+        });
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+        });
     },
 
     initNotifications: function() {
@@ -310,6 +325,167 @@ const LyceeAdmin = {
                 if (globalThis.innerWidth <= 1024) close();
             });
         });
+    },
+
+    initCharts: function() {
+        var ctx = document.querySelector('meta[name="ctx"]')?.content || '';
+
+        var moyennesCanvas = document.getElementById('moyennesChart');
+        var repartitionCanvas = document.getElementById('repartitionChart');
+        var absencesCanvas = document.getElementById('absencesChart');
+
+        if (!moyennesCanvas && !repartitionCanvas && !absencesCanvas) return;
+
+        var style = getComputedStyle(document.documentElement);
+        var primary = style.getPropertyValue('--primary').trim();
+        var accent = style.getPropertyValue('--accent').trim();
+        var error = style.getPropertyValue('--error').trim();
+        var warning = style.getPropertyValue('--warning').trim();
+
+        var hexToRgb = function(hex) {
+            var r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return r ? parseInt(r[1], 16) + ', ' + parseInt(r[2], 16) + ', ' + parseInt(r[3], 16) : '0, 0, 0';
+        };
+
+        var primaryRgb = hexToRgb(primary);
+        var accentRgb = hexToRgb(accent);
+        var errorRgb = hexToRgb(error);
+        var warningRgb = hexToRgb(warning);
+
+        var fontColor = style.getPropertyValue('--on-surface').trim();
+
+        var scalesOpts = {
+            y: { beginAtZero: true, ticks: { color: fontColor } },
+            x: { ticks: { color: fontColor } }
+        };
+
+        if (moyennesCanvas) {
+            fetch(ctx + '/api/charts/moyennes-par-classe')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data || data.length === 0) return;
+                    new Chart(moyennesCanvas, {
+                        type: 'bar',
+                        data: {
+                            labels: data.map(function(d) { return d.classe; }),
+                            datasets: [{
+                                label: 'Moyenne /20',
+                                data: data.map(function(d) { return d.moyenne; }),
+                                backgroundColor: 'rgba(' + primaryRgb + ', 0.2)',
+                                borderColor: 'rgba(' + primaryRgb + ', 1)',
+                                borderWidth: 2,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: scalesOpts
+                        }
+                    });
+                })
+                .catch(function() {});
+        }
+
+        if (repartitionCanvas) {
+            fetch(ctx + '/api/charts/repartition-decision')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data || data.length === 0) return;
+                    new Chart(repartitionCanvas, {
+                        type: 'doughnut',
+                        data: {
+                            labels: data.map(function(d) { return d.decision; }),
+                            datasets: [{
+                                data: data.map(function(d) { return d.count; }),
+                                backgroundColor: data.map(function(d) {
+                                    return d.decision === 'Admis'
+                                        ? 'rgba(' + primaryRgb + ', 0.8)'
+                                        : 'rgba(' + errorRgb + ', 0.8)';
+                                }),
+                                borderColor: data.map(function(d) {
+                                    return d.decision === 'Admis'
+                                        ? 'rgba(' + primaryRgb + ', 1)'
+                                        : 'rgba(' + errorRgb + ', 1)';
+                                }),
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { color: fontColor }
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(function() {});
+        }
+
+        if (absencesCanvas) {
+            fetch(ctx + '/api/charts/absences-par-mois')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data || data.length === 0) return;
+                    new Chart(absencesCanvas, {
+                        type: 'line',
+                        data: {
+                            labels: data.map(function(d) { return d.mois; }),
+                            datasets: [{
+                                label: 'Heures',
+                                data: data.map(function(d) { return d.heures; }),
+                                borderColor: 'rgba(' + primaryRgb + ', 1)',
+                                backgroundColor: 'rgba(' + primaryRgb + ', 0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                pointBackgroundColor: 'rgba(' + primaryRgb + ', 1)',
+                                pointRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: scalesOpts
+                        }
+                    });
+                })
+                .catch(function() {});
+        }
+    },
+
+    initDarkMode: function() {
+        const toggle = document.getElementById('dark-toggle');
+        const html = document.documentElement;
+        if (!toggle) return;
+
+        const apply = (dark) => {
+            if (dark) {
+                html.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+            }
+            const lightIcons = toggle.querySelectorAll('.dark-icon-light');
+            const darkIcons = toggle.querySelectorAll('.dark-icon-dark');
+            lightIcons.forEach(i => i.style.display = dark ? 'none' : '');
+            darkIcons.forEach(i => i.style.display = dark ? '' : 'none');
+        };
+
+        const saved = localStorage.getItem('theme');
+        if (saved === 'dark') { apply(true); }
+        else if (saved === 'light') { apply(false); }
+        else if (globalThis.matchMedia('(prefers-color-scheme: dark)').matches) { apply(true); }
+
+        toggle.addEventListener('click', () => {
+            apply(html.getAttribute('data-theme') !== 'dark');
+        });
     }
 };
 
@@ -322,6 +498,8 @@ document.addEventListener('DOMContentLoaded', () => {
     LyceeAdmin.initNotifications();
     LyceeAdmin.initFlashAutoDismiss();
     LyceeAdmin.initSidebar();
+    LyceeAdmin.initDarkMode();
+    LyceeAdmin.initCharts();
     
     // Initialisation spécifique pour le module Classes
     const nf = document.getElementById('niveau-filter');

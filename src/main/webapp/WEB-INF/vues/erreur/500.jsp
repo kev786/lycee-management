@@ -1,158 +1,70 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page isErrorPage="true" %>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>500 - Erreur serveur | Lycée Admin</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
     <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        }
-        .error-container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 60px 40px;
-            text-align: center;
-            max-width: 500px;
-            animation: slideIn 0.6s ease-out;
-        }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .error-icon {
-            font-size: 80px;
-            margin-bottom: 20px;
-            opacity: 0.8;
-        }
-        .error-code {
-            font-size: 72px;
-            font-weight: 700;
-            color: #f5576c;
-            margin: 0;
-            line-height: 1;
-        }
-        .error-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin: 20px 0 10px;
-        }
-        .error-message {
-            font-size: 16px;
-            color: #666;
-            margin: 0 0 40px;
-            line-height: 1.6;
-        }
-        .error-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-        }
-        .btn {
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn-primary {
-            background: #f5576c;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #d63a4a;
-            box-shadow: 0 8px 16px rgba(245, 87, 108, 0.4);
-        }
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #1a1a1a;
-        }
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
-        .error-details {
-            margin-top: 40px;
-            padding-top: 30px;
-            border-top: 1px solid #eee;
-            font-size: 12px;
-            color: #999;
-            text-align: left;
-            background: #f9f9f9;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            min-height: 100vh; min-height: 100dvh;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
             padding: 20px;
-            border-radius: 8px;
         }
-        .error-details pre {
-            margin: 10px 0;
-            overflow-x: auto;
-            font-size: 11px;
-            color: #666;
+        .card {
+            background: white; border-radius: 20px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.2);
+            padding: 60px 48px; text-align: center;
+            max-width: 520px; width: 100%;
+            animation: fadeUp .5s ease-out;
         }
-        .support-link {
-            margin-top: 20px;
-            font-size: 13px;
-        }
-        .support-link a {
-            color: #f5576c;
-            text-decoration: none;
-            font-weight: 600;
-        }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+        .code { font-size: 96px; font-weight: 800; color: #dc2626; line-height: 1; }
+        .icon { font-size: 56px; margin-bottom: 8px; }
+        h1 { font-size: 24px; font-weight: 700; color: #1a1a2e; margin: 16px 0 8px; }
+        p { font-size: 15px; color: #6b7280; line-height: 1.7; margin-bottom: 32px; }
+        .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn { padding: 12px 28px; border-radius: 12px; font-weight: 600; font-size: 14px; text-decoration: none; transition: all .2s; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: #dc2626; color: white; }
+        .btn-primary:hover { background: #b91c1c; box-shadow: 0 8px 24px rgba(220,38,38,0.35); transform: translateY(-1px); }
+        .btn-ghost { background: #f3f4f6; color: #374151; }
+        .btn-ghost:hover { background: #e5e7eb; }
+        .trace { margin-top: 24px; padding: 16px; background: #f9fafb; border-radius: 12px; text-align: left; font-size: 11px; color: #6b7280; overflow-x: auto; max-height: 200px; border: 1px solid #e5e7eb; }
+        .trace pre { margin: 8px 0 0; white-space: pre-wrap; word-break: break-all; }
+        .support { margin-top: 20px; font-size: 13px; }
+        .support a { color: #dc2626; font-weight: 600; text-decoration: none; }
+        .support a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-    <div class="error-container">
-        <div class="error-icon">⚠️</div>
-        <h1 class="error-code">500</h1>
-        <h2 class="error-title">Erreur serveur interne</h2>
-        <p class="error-message">
-            Une erreur inattendue s'est produite sur le serveur. 
-            Notre équipe technique a été alertée et travaille à la résolution.
-        </p>
-        
-        <div class="error-actions">
+    <div class="card">
+        <div class="icon">⚠️</div>
+        <div class="code">500</div>
+        <h1>Erreur serveur</h1>
+        <p>Une erreur inattendue s'est produite.<br>L'équipe technique a été alertée.</p>
+        <div class="actions">
             <a href="${pageContext.request.contextPath}/app/dashboard" class="btn btn-primary">
-                Retour au tableau de bord
+                <span>→</span> Tableau de bord
             </a>
-            <a href="javascript:history.back()" class="btn btn-secondary">
-                Retour en arrière
-            </a>
+            <a href="javascript:history.back()" class="btn btn-ghost">← Retour</a>
         </div>
-
-        <%-- Affiche les détails de l'erreur en mode debug/développement --%>
         <c:if test="${not empty exception}">
-            <div class="error-details">
-                <p><strong>Détails de l'erreur :</strong></p>
-                <pre><%= exception.getClass().getName() + ": " + exception.getMessage() %></pre>
-                <p><strong>Trace :</strong></p>
-                <pre><%
-                    java.io.StringWriter sw = new java.io.StringWriter();
-                    exception.printStackTrace(new java.io.PrintWriter(sw));
-                    String trace = sw.toString();
-                    out.print(trace.substring(0, Math.min(500, trace.length())));
-                    if (trace.length() > 500) out.print("...");
-                %></pre>
-            </div>
+        <div class="trace">
+            <strong>Détails :</strong>
+            <pre><%= exception.getClass().getName() + ": " + exception.getMessage() %></pre>
+        </div>
         </c:if>
-
-        <div class="support-link">
+        <div class="support">
             <p>Besoin d'aide ? <a href="mailto:support@lycee.local">Contactez le support</a></p>
         </div>
     </div>
-
-    <%-- Importe le tag core pour <c:if> --%>
-    <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 </body>
 </html>

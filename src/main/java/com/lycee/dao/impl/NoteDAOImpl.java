@@ -490,6 +490,30 @@ public class NoteDAOImpl implements NoteDAO {
     }
 
     @Override
+    public List<Map<String, Object>> getRepartitionDecisions(int trimestre) throws SQLException {
+        String sql =
+            "SELECT decision, COUNT(*) AS count FROM (" +
+            "  SELECT eleve_id," +
+            "    CASE WHEN SUM(notes_valeur * coefficient) / SUM(coefficient) >= 10 THEN 'Admis' ELSE 'Échec' END AS decision" +
+            "  FROM note_eleve WHERE trimestre=? GROUP BY eleve_id" +
+            ") sub GROUP BY decision";
+        List<Map<String, Object>> result = new ArrayList<>();
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, trimestre);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("decision", rs.getString("decision"));
+                    row.put("count", rs.getInt("count"));
+                    result.add(row);
+                }
+            }
+        }
+        return result;
+    }
+
+    @Override
     public List<Map<String, Object>> findRecentes(int limit) throws SQLException {
         String sql =
             "SELECT n.id, n.matiere, n.notes_valeur, n.trimestre, " +
