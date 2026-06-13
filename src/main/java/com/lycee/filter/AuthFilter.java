@@ -28,9 +28,13 @@ public class AuthFilter implements Filter {
         "/app/parametres"
     );
 
-    /** Admin et Censeur uniquement (bloqué pour Surveillant) */
+    /** Admin, Censeur et Professeur uniquement (bloqué pour Surveillant) */
+    private static final Set<String> PROFESSEUR_PATHS = Set.of(
+        "/app/notes"
+    );
+
+    /** Admin et Censeur uniquement (bloqué pour Surveillant et Professeur) */
     private static final Set<String> CENSEUR_PATHS = Set.of(
-        "/app/notes",
         "/app/pdf",
         "/app/documents",
         "/app/eleves/export-csv"
@@ -73,7 +77,16 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        if (matchesAny(uri, CENSEUR_PATHS)) {
+        if (Constants.ROLE_PROFESSEUR.equals(role)) {
+            if (matchesAny(uri, CENSEUR_PATHS)) {
+                resp.sendError(HttpServletResponse.SC_FORBIDDEN);
+                return;
+            }
+            chain.doFilter(request, response);
+            return;
+        }
+
+        if (matchesAny(uri, PROFESSEUR_PATHS) || matchesAny(uri, CENSEUR_PATHS)) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }

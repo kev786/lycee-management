@@ -10,12 +10,17 @@
 7. [Modèle (Model / Entity)](#7-modèle-model--entity)
 8. [Service Layer](#8-service-layer)
 9. [Filtres (Filters)](#9-filtres-filters)
-10. [Déploiement du projet](#10-déploiement-du-projet)
-11. [Pourquoi les JSP sont dans WEB-INF](#11-pourquoi-les-jsp-sont-dans-web-inf)
-12. [Configuration effectuée](#12-configuration-effectuée)
-13. [Dépendances (pom.xml)](#13-dépendances-pomxml)
-14. [Base de données](#14-base-de-données)
-15. [Schéma architectural complet](#15-schéma-architectural-complet)
+10. [Pages d'erreur personnalisées](#10-pages-derreur-personnalisées)
+11. [Mode sombre](#11-mode-sombre)
+12. [Dashboard enrichi + Chart.js](#12-dashboard-enrichi--chartjs)
+13. [Export Excel (Apache POI)](#13-export-excel-apache-poi)
+14. [Génération PDF (iText 7)](#14-génération-pdf-itext-7)
+15. [Notifications SMS (Twilio)](#15-notifications-sms-twilio)
+16. [Déploiement du projet](#16-déploiement-du-projet)
+17. [Configuration effectuée](#17-configuration-effectuée)
+18. [Dépendances (pom.xml)](#18-dépendances-pomxml)
+19. [Base de données](#19-base-de-données)
+20. [Schéma architectural complet](#20-schéma-architectural-complet)
 
 ---
 
@@ -25,351 +30,249 @@
 
 - **Élèves** : inscription, photo, matricule, classe, parents
 - **Classes** : 18 niveaux (6e → Tle) avec séries (ALL, ESP, CHS, A, C, D, TI)
-- **Notes** : saisie par matière et trimestre, bulletins PDF
-- **Absences** : enregistrement, justification, suivi
+- **Notes** : saisie par matière, coefficient et trimestre, avec calcul automatique des moyennes
+- **Absences** : enregistrement, justification, suivi par trimestre et annuel
 - **Utilisateurs** : 3 rôles (Admin, Censeur, Surveillant)
-- **Paramètres** : configuration de l'établissement (nom, logo, devise, etc.)
-- **Notifications** : alertes internes, envoi SMS via Twilio
-- **Documents PDF** : bulletins, convocations, tableaux d'honneur
+- **Documents PDF** : bulletins trimestriels, bulletins annuels, convocations, tableaux d'honneur
+- **Export Excel** : liste des élèves, bulletins individuels
+- **Dashboard** : statistiques avec graphiques Chart.js, absentéisme, performances
 
-**Stack technique :**
-- Java 25
-- Jakarta EE 11 (Servlets 6.1, JSP, JSTL 3.0)
-- Apache Tomcat 11.0.21
-- MySQL 8.4
-- Maven 3.9 (packaging WAR)
-- CSS : Thème maison + Tailwind CDN + Material Symbols
+Technologies utilisées :
+- **Langage** : Java 25
+- **Framework Web** : Jakarta EE 11 (Servlets 6.1, JSP, JSTL 3.0)
+- **Base de données** : MySQL 8.4 avec JDBC (pas d'ORM)
+- **Serveur** : Apache Tomcat 11.0.21
+- **Build** : Maven 3.9 (WAR)
+- **PDF** : iText 7 Core (AGPL)
+- **SMS** : Twilio SDK 9.3.0
+- **Excel** : Apache POI 5.2.5
+- **Graphiques** : Chart.js 4.x (CDN)
+- **Mot de passe** : JBCrypt 0.4
+- **Logs** : SLF4J + Logback
 
 ---
 
 ## 2. Architecture MVC
 
-Le projet suit le pattern **Modèle-Vue-Contrôleur (MVC)** :
+L'application suit le pattern **MVC (Modèle-Vue-Contrôleur)** :
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   MODÈLE     │◄───►│  CONTROLEUR  │────►│    VUE       │
-│  (Entity)    │     │  (Servlet)   │     │  (JSP)       │
-│  + DAO       │     │              │     │              │
-│  + Service   │     │              │     │              │
-└──────────────┘     └──────────────┘     └──────────────┘
+[Client Browser]
+       |
+       v
+   AuthFilter (vérifie session et rôle)
+       |
+       v
+  Servlet (Contrôleur) ──→ DAO (Accès DB) ──→ MySQL
+       |                      |
+       |                      v
+       |                  Modèle (POJO)
+       |
+       v
+   JSP (Vue)
 ```
 
-### Rôles de chaque couche :
+### Détail du flux MVC
 
-| Couche | Rôle | Exemple |
+| Couche | Rôle | Exemples |
 |---|---|---|
-| **Modèle** | Données métier + accès base | `Eleve.java`, `EleveDAO.java` |
-| **Vue** | Affichage HTML dynamique | `liste.jsp`, `form.jsp` |
-| **Contrôleur** | Réception requête, logique, redirection | `EleveServlet.java` |
-
-### Exemple de flux MVC (création d'un élève) :
-
-1. Le navigateur envoie `GET /app/eleves/nouveau`
-2. **Contrôleur** `EleveServlet.doGet()` traite la requête
-3. Il charge la liste des classes via **Modèle** (`ClasseDAO.findAll()`)
-4. Il stocke le résultat dans la requête : `req.setAttribute("classes", list)`
-5. Il forwarde vers la **Vue** : `requestDispatcher("/WEB-INF/vues/eleve/form.jsp")`
-6. La JSP génère le HTML avec les données reçues
-7. L'utilisateur remplit le formulaire et POST
-8. **Contrôleur** `EleveServlet.doPost()` valide les données
-9. Il appelle **Modèle** `EleveDAO.create(eleve)` pour insérer en base
-10. Il redirige (`sendRedirect`) vers la liste
+| **Modèle** | POJO représentant les entités | `Eleve`, `NoteEleve`, `Absence`, `Classe`, `Utilisateur` |
+| **Vue** | JSP dans `/WEB-INF/vues/` | `liste.jsp`, `form.jsp`, `dashboard.jsp` |
+| **Contrôleur** | Servlets (`@WebServlet`) | `EleveServlet`, `NoteServlet`, `PdfServlet` |
+| **DAO** | Interface + Implémentation JDBC | `EleveDAO` / `EleveDAOImpl` |
+| **Service** | Logique métier | `PdfService`, `SmsService`, `ExcelService` |
+| **DTO** | Objets de transfert pour les filtres | `EleveSearchCriteria`, `NoteSearchCriteria` |
+| **Utilitaire** | Helpers | `PdfLayoutHelper`, `DateUtil`, `AuthUtil` |
 
 ---
 
 ## 3. Jakarta EE et les Servlets
 
-### Qu'est-ce que Jakarta EE ?
+L'application utilise **Jakarta EE 11** (ex Java EE) avec l'API Servlet 6.1.
 
-Jakarta EE (anciennement Java EE / J2EE) est un ensemble de spécifications pour le développement d'applications d'entreprise en Java. L'application utilise Jakarta EE 11.
+### Servlet de base
 
-### Qu'est-ce qu'un Servlet ?
-
-Un **Servlet** est une classe Java côté serveur qui reçoit des requêtes HTTP et produit des réponses. C'est l'équivalent Java d'un script PHP ou d'une route Express.js.
-
-**Cycle de vie d'un Servlet :**
-1. **init()** — appelé une fois lors du chargement
-2. **service()** — appelé pour chaque requête (dispatch vers doGet/doPost)
-3. **destroy()** — appelé lors du retrait du serveur
-
-**Annotations principales :**
-```java
-@WebServlet("/app/eleves/*")        // Déclare l'URL pattern
-@MultipartConfig(maxFileSize = ...) // Pour l'upload de fichiers
-
-// Méthodes à surcharger :
-protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-```
-
-**Exemple concret :**
 ```java
 @WebServlet("/app/eleves/*")
 public class EleveServlet extends HttpServlet {
-
-    private final transient EleveDAO eleveDAO = new EleveDAOImpl();
-
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
-        String path = req.getPathInfo(); // "/nouveau", "/modifier/5", etc.
-        if ("/nouveau".equals(path)) {
-            // Afficher formulaire de création
-            List<Classe> classes = classeDAO.findAll();
-            req.setAttribute("classes", classes);
-            req.getRequestDispatcher("/WEB-INF/vues/eleve/form.jsp").forward(req, resp);
-        }
-    }
-
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
-        String nom = req.getParameter("nom"); // Récupère champ formulaire
-        eleveDAO.create(new Eleve(nom, ...));
-        resp.sendRedirect(req.getContextPath() + "/app/eleves");
-    }
+    // doGet() pour l'affichage, doPost() pour les soumissions
 }
 ```
 
-### Points importants sur les Servlets :
+### Tous les servlets
 
-- **req.getParameter("nom")** — lit un champ de formulaire HTTP
-- **req.setAttribute("cle", valeur)** — transmet des données à la JSP
-- **req.getRequestDispatcher("/WEB-INF/...").forward(req, resp)** — forwarde vers une JSP (côté serveur)
-- **resp.sendRedirect(url)** — redirige le navigateur (nouvelle requête HTTP)
-- **req.getSession()** — récupère/crée une session HTTP
-- **@WebServlet** — annotation qui remplace le `web.xml` pour déclarer les servlets (sauf pages d'erreur)
-
-### Les filtres (Filters)
-
-Un **Filter** intercepte les requêtes avant qu'elles n'atteignent le Servlet :
-
-```java
-@WebFilter(urlPatterns = {"/app/*"})
-public class AuthFilter implements Filter {
-    public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain) {
-        // Vérifier si l'utilisateur est connecté
-        if (session.getAttribute("utilisateur") == null) {
-            resp.sendRedirect("/login");
-            return;
-        }
-        // Continuer la chaîne
-        chain.doFilter(req, resp);
-    }
-}
-```
-
-**Filtres du projet :**
-- `AuthFilter` — Vérifie authentification et droits d'accès par rôle
-- `SecurityHeadersFilter` — Ajoute les en-têtes HTTP de sécurité (X-Frame-Options, etc.)
+| Servlet | Mapping | Fonction |
+|---|---|---|
+| `LoginServlet` | `/login` | Authentification + logout |
+| `DashboardServlet` | `/app/dashboard` | Vue d'ensemble + stats |
+| `EleveServlet` | `/app/eleves/*` | CRUD élèves |
+| `ClasseServlet` | `/app/classes/*` | CRUD classes |
+| `NoteServlet` | `/app/notes/*` | CRUD notes (individuel + masse) |
+| `AbsenceServlet` | `/app/absences/*` | CRUD absences |
+| `DocumentsServlet` | `/app/documents` | Interface de génération de documents |
+| `PdfServlet` | `/app/pdf/*` | Génération des PDF (bulletins, convocations) |
+| `ExcelServlet` | `/app/excel/*` | Export Excel (élèves, bulletins) |
+| `ChartDataServlet` | `/api/charts/*` | API JSON pour les graphiques |
+| `UtilisateurServlet` | `/app/utilisateurs/*` | CRUD utilisateurs |
+| `ParametreServlet` | `/app/parametres/*` | Paramètres établissement |
+| `NotificationServlet` | `/api/notifications/*` | API notifications |
+| `PhotoServlet` | `/app/photo/*` | Upload photo élève |
+| `SallesApiServlet` | `/api/salles/*` | API salles pour filtres |
+| `AssetServlet` | `/assets/*` | Fichiers statiques publics (logo) |
 
 ---
 
 ## 4. JSP (Jakarta Server Pages)
 
-### Qu'est-ce qu'une JSP ?
-
-Une JSP est un fichier HTML contenant du code Java embarqué via des **tags** et des **expressions EL** (Expression Language). Elle permet de générer du HTML dynamique côté serveur.
-
-### Syntaxe JSP :
-
-```jsp
-<%-- Commentaire JSP (invisible dans le HTML) --%>
-
-<%@ page contentType="text/html;charset=UTF-8" %>  <%-- Directive page --%>
-<%@ taglib uri="jakarta.tags.core" prefix="c" %>   <%-- Import JSTL --%>
-
-<%-- Affichage d'une variable avec EL (Expression Language) --%>
-<p>${eleve.prenom} ${eleve.nom}</p>
-
-<%-- Condition --%>
-<c:if test="${not empty eleves}">
-    <p>Il y a des élèves</p>
-</c:if>
-
-<%-- Boucle --%>
-<c:forEach var="e" items="${eleves}">
-    <tr><td>${e.matricule}</td><td>${e.prenom}</td></tr>
-</c:forEach>
-
-<%-- Lien --%>
-<a href="${pageContext.request.contextPath}/app/eleves/modifier/${e.id}">Modifier</a>
-```
-
-### Comment les données arrivent dans une JSP ?
-
-C'est le Servlet qui prépare les données avant de forwarder :
-
-```java
-// Dans le Servlet :
-List<Eleve> eleves = eleveDAO.findAll();
-req.setAttribute("eleves", eleves);    // ← rend "eleves" accessible dans la JSP
-req.getRequestDispatcher("/WEB-INF/vues/eleve/liste.jsp").forward(req, resp);
-
-// Dans la JSP, on accède à la liste via ${eleves}
-```
-
-### Structure des vues du projet :
+Les vues JSP sont situées dans `/WEB-INF/vues/` :
 
 ```
 WEB-INF/vues/
-├── absence/          liste.jsp, form.jsp
-├── classe/           liste.jsp, form.jsp
-├── documents/        index.jsp
-├── eleve/            liste.jsp, form.jsp, detail.jsp
-├── erreur/           403.jsp, 404.jsp, 500.jsp
-├── layout/           header.jsp, footer.jsp, pagination.jsp, flash.jsp
-├── note/             liste.jsp, form.jsp, saisie-masse.jsp
-├── parametre/        liste.jsp
-├── utilisateur/      liste.jsp, form.jsp
-├── dashboard.jsp
-├── login.jsp
-└── motDePasseOublie.jsp
+├── login.jsp                 # Page de connexion
+├── dashboard.jsp             # Tableau de bord
+├── motDePasseOublie.jsp      # Mot de passe oublié
+├── index.jsp                 # Redirection vers login
+├── layout/
+│   ├── header.jsp            # En-tête + sidebar + topbar
+│   ├── footer.jsp            # Pied de page
+│   └── flash.jsp             # Messages flash
+├── eleve/
+│   ├── liste.jsp             # Liste des élèves
+│   └── form.jsp              # Formulaire élève
+├── classe/
+│   ├── liste.jsp             # Liste des classes
+│   └── form.jsp              # Formulaire classe
+├── note/
+│   ├── liste.jsp             # Liste des notes
+│   ├── form.jsp              # Édition note individuelle
+│   └── saisie_masse.jsp      # Saisie groupée par classe
+├── absence/
+│   ├── liste.jsp             # Liste des absences
+│   └── form.jsp              # Formulaire absence
+├── documents/
+│   └── index.jsp             # Interface de génération PDF + Excel
+├── utilisateur/
+│   ├── liste.jsp             # Liste des utilisateurs
+│   └── form.jsp              # Formulaire utilisateur
+├── parametre/
+│   └── liste.jsp             # Paramètres établissement
+└── erreur/
+    ├── 404.jsp               # Page non trouvée
+    ├── 403.jsp               # Accès refusé
+    └── 500.jsp               # Erreur serveur
 ```
+
+### Principe d'inclusion
+
+```jsp
+<jsp:include page="/WEB-INF/vues/layout/header.jsp">
+    <jsp:param name="title" value="Liste des Élèves" />
+    <jsp:param name="active" value="eleves" />
+</jsp:include>
+<!-- Contenu de la page -->
+<jsp:include page="/WEB-INF/vues/layout/footer.jsp" />
+```
+
+### Pourquoi les JSP sont dans WEB-INF ?
+
+Les pages JSP sont placées dans `/WEB-INF/` pour des raisons de sécurité :
+- **Empêche l'accès direct** : un utilisateur ne peut pas accéder à `http://serveur/WEB-INF/vues/eleve/liste.jsp`
+- **Passe obligatoirement par le servlet** : tout accès se fait via `/app/eleves/`
+- **Séparation des responsabilités** : le contrôleur prépare les données, la vue les affiche
 
 ---
 
 ## 5. DAO (Data Access Object)
 
-### Définition
+### Principe
 
-Le pattern **DAO** sépare la logique d'accès aux données du reste de l'application. Chaque entité a son propre DAO qui encapsule les requêtes SQL.
+Le pattern DAO sépare l'accès aux données de la logique métier. Chaque entité a :
+- Une **interface** (`NoteDAO.java`) qui définit les contrats
+- Une **implémentation** (`NoteDAOImpl.java`) avec les requêtes SQL concrètes
 
-### Structure
+Toutes les connexions utilisent `DBConnection.getConnection()` (pool de connexions ou connexion directe via `db.properties`).
+
+### Liste des DAO
+
+| Interface | Implémentation | Entité |
+|---|---|---|
+| `EleveDAO` | `EleveDAOImpl` | Élèves |
+| `ClasseDAO` | `ClasseDAOImpl` | Classes |
+| `NoteDAO` | `NoteDAOImpl` | Notes |
+| `AbsenceDAO` | `AbsenceDAOImpl` | Absences |
+| `UtilisateurDAO` | `UtilisateurDAOImpl` | Utilisateurs |
+| `ParametreDAO` | `ParametreDAOImpl` | Paramètres |
+| `NotificationDAO` | `NotificationDAOImpl` | Notifications |
+
+### Bonnes pratiques appliquées
 
 ```java
-// Interface (contrat)
-public interface EleveDAO {
-    Eleve findById(Long id) throws SQLException;
-    List<Eleve> findAll() throws SQLException;
-    List<Eleve> findAllPaginated(int page, int size, EleveSearchCriteria c) throws SQLException;
-    void create(Eleve e) throws SQLException;
-    void update(Eleve e) throws SQLException;
-    void delete(Long id) throws SQLException;
-}
-
-// Implémentation concrète
-public class EleveDAOImpl implements EleveDAO {
-
-    @Override
-    public Eleve findById(Long id) throws SQLException {
-        String sql = "SELECT * FROM eleve WHERE id = ?";
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setLong(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? mapRow(rs) : null;
+@Override
+public List<NoteEleve> findByEleveAndTrimestre(Long eleveId, int trimestre) throws SQLException {
+    String sql = "SELECT id, eleve_id, matiere, coefficient, notes_valeur, trimestre, prof_saisie "
+               + "FROM note_eleve WHERE eleve_id=? AND trimestre=? ORDER BY matiere";
+    List<NoteEleve> list = new ArrayList<>();
+    try (Connection con = DBConnection.getConnection();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+        ps.setLong(1, eleveId);
+        ps.setInt(2, trimestre);
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(map(rs));
             }
         }
     }
+    return list;
 }
 ```
 
-### Règles appliquées dans le projet :
-
-- **PreparedStatement** obligatoire (protection contre les injections SQL)
-- **try-with-resources** partout (fermeture automatique des connexions)
-- `Connection` obtenue via `DBConnection.getConnection()` (singleton)
-- Pas de `connection.close()` manuel — le try-with-resources s'en charge
-
-### Tous les DAO du projet :
-
-| DAO | Interface | Implémentation |
-|---|---|---|
-| EleveDAO | `eleve` → CRUD + pagination + recherche | `EleveDAOImpl` |
-| ClasseDAO | `classe` → CRUD + pagination | `ClasseDAOImpl` |
-| NoteDAO | `note_eleve` → CRUD + pagination | `NoteDAOImpl` |
-| AbsenceDAO | `absence` → CRUD + pagination | `AbsenceDAOImpl` |
-| UtilisateurDAO | `utilisateurs` → CRUD | `UtilisateurDAOImpl` |
-| ParametreDAO | `parametre` → find + save | `ParametreDAOImpl` |
-| NotificationDAO | `notification` → CRUD | `NotificationDAOImpl` |
+Points clés :
+- **`try-with-resources`** partout (fermeture automatique)
+- **`PreparedStatement`** (prévention injection SQL)
+- **Pas de `Statement`**, pas de concaténation manuelle dans les requêtes
 
 ---
 
 ## 6. DTO (Data Transfer Object)
 
-### Définition
+Les DTO sont utilisés pour transporter les critères de recherche entre les servlets et les DAO.
 
-Un **DTO** est un objet simple qui transporte des données entre les couches, sans logique métier. Il sert à encapsuler des critères de recherche ou des résultats composites.
+| Classe | Rôle |
+|---|---|
+| `EleveSearchCriteria` | Filtres pour la recherche d'élèves (nom, classe, sexe, salle, etc.) |
+| `NoteSearchCriteria` | Filtres pour la recherche de notes (matière, trimestre, classe, etc.) |
 
-### Exemple dans le projet
-
-```java
-public class EleveSearchCriteria {
-    private String q;          // recherche textuelle
-    private Long classeId;     // filtre par classe
-    private String niveau;     // filtre par niveau
-    private String serie;      // filtre par série
-    // Getters + setters...
-}
-```
-
-Ce DTO est utilisé par `EleveServlet` pour passer les critères de filtrage à `EleveDAOImpl`, au lieu d'avoir 6 paramètres séparés dans la méthode.
-
-**DTO du projet :**
-- `EleveSearchCriteria` — critères de recherche/filtre des élèves
-- `NoteSearchCriteria` — critères de recherche/filtre des notes
+Placement : `com.lycee.dto`
 
 ---
 
 ## 7. Modèle (Model / Entity)
 
-### Définition
+Tous les modèles sont dans `com.lycee.model` :
 
-Une **Entity** est une classe Java qui représente une table de la base de données. Chaque champ = une colonne.
-
-```java
-public class Eleve {
-    private Long id;
-    private String matricule;
-    private String prenom;
-    private String nom;
-    private LocalDate dateNaissance;
-    private String sexe;
-    private Long classeId;       // FK vers classe
-    private String telParent;
-    private String emailParent;
-    private String photoFilename;
-    // Getters + setters...
-}
-```
-
-**Entités du projet :**
-| Classe | Table | Usage |
-|---|---|---|
-| `Eleve` | `eleve` | Données personnelles + parents |
-| `Classe` | `classe` | Niveau, série, salle, professeur principal |
-| `NoteEleve` | `note_eleve` | Notes par matière/trimestre |
-| `Absence` | `absence` | Absences avec motif et justification |
-| `Utilisateur` | `utilisateurs` | Comptes (login, hash, rôle) |
-| `ParametresEtablissement` | `parametre` | Config de l'établissement |
-| `Notification` | `notification` | Alertes internes |
+| Classe | Champs principaux |
+|---|---|
+| `Eleve` | `id, matricule, nom, prenom, dateNaissance, sexe, classeId, telParent, emailParent, photoFilename, salle` |
+| `Classe` | `id, niveau, serie, salle, anneeScolaire` |
+| `NoteEleve` | `id, eleveId, matiere, coefficient, notesValeur, trimestre, profSaisie` |
+| `Absence` | `id, eleveId, dateAbsence, dureeHeures, justifiee, motif` |
+| `Utilisateur` | `id, login, passwordHache, role, nomComplet` |
+| `ParametresEtablissement` | `id, etablissement, anneeScolaire, logoFilename, devise, ville, telephone, email, siteWeb, republique, ministere, delegation, entetePdf, filigraneLogo` |
+| `Notification` | `id, type, message, destinataireId, lu, dateCreation` |
 
 ---
 
 ## 8. Service Layer
 
-La couche **Service** encapsule la logique métier et sert d'intermédiaire entre les Servlets et les DAOs.
+Les services contiennent la logique métier complexe.
 
-```java
-public class ParametreService {
-    private final ParametreDAO parametreDAO = new ParametreDAOImpl();
-
-    public ParametresEtablissement charger() {
-        try {
-            return parametreDAO.find();
-        } catch (SQLException e) {
-            LOG.warn("Erreur, valeurs par défaut utilisées");
-            return new ParametresEtablissement();
-        }
-    }
-}
-```
-
-**Services du projet :**
-- `ParametreService` — gestion des paramètres établissement
-- `PdfService` — génération des PDF (bulletins, convocations, tableaux d'honneur)
-- `SmsService` — envoi de SMS via Twilio (simulation si non configuré)
-- `NotificationService` — gestion des notifications internes
+| Service | Rôle |
+|---|---|
+| `PdfService` | Génération de tous les PDF (bulletins, convocations, tableaux d'honneur) |
+| `ExcelService` | Export Excel (élèves, bulletins) via Apache POI |
+| `SmsService` | Envoi de notifications SMS via Twilio (ou simulation) |
+| `ParametreService` | Chargement et cache des paramètres établissement |
+| `NotificationService` | Gestion des notifications en base |
 
 ---
 
@@ -377,381 +280,450 @@ public class ParametreService {
 
 ### AuthFilter
 
-Intercepte toutes les requêtes `/app/*` :
+L'`AuthFilter` (`@WebFilter("/app/*")`) intercepte toutes les requêtes vers `/app/*` :
 
-1. Vérifie si l'utilisateur est connecté (session)
-2. Vérifie les droits d'accès selon le rôle :
-   - **Admin** : tout accès
-   - **Censeur** : pas d'accès à `/app/utilisateurs`, `/app/parametres`
-   - **Surveillant** : accès limité à `/app/eleves`, `/app/absences`, `/app/dashboard`
-3. Si non connecté → redirection vers `/login`
-4. Si pas les droits → HTTP 403
+1. Récupère l'utilisateur depuis la session
+2. Si non connecté : redirige vers `/login`
+3. Si connecté : vérifie le rôle via `AuthUtil.denyUnless*()`
+4. Vérifie la validité de la session (timeout 30 min)
 
-### SecurityHeadersFilter
+```
+Requête → /app/eleves/
+    ↓
+AuthFilter (vérifie session)
+    ↓
+  ┌─ Session vide → redirect /login
+  │
+  └─ Session OK → EleveServlet
+        ↓
+      AuthUtil.denyUnlessAdminOrCenseur(req, resp)
+```
 
-Intercepte **toutes** les requêtes (`/*`) et ajoute les en-têtes de sécurité :
-- `X-Frame-Options: DENY` (pas d'iframe)
-- `X-Content-Type-Options: nosniff`
-- `X-XSS-Protection: 1; mode=block`
-- `Referrer-Policy: strict-origin-when-cross-origin`
-- `Cache-Control: no-store`
+### AuthUtil
+
+Méthodes utilitaires pour le contrôle d'accès basé sur les rôles :
+- `denyUnlessAdminOrCenseur(req, resp)` → 403 si rôle incorrect
+- `denyUnlessAdmin(req, resp)` → 403 si pas Admin
+- `denyUnlessCenseur(req, resp)` → 403 si pas Censeur
+- `denyUnlessSurveillant(req, resp)` → 403 si pas Surveillant
 
 ---
 
-## 10. Déploiement du projet
+## 10. Pages d'erreur personnalisées
 
-### Prérequis
+### Configuration (web.xml)
 
-- Java 25 (JDK)
-- Apache Tomcat 11.0.21
-- MySQL 8.4
-- Maven 3.9+
-- Git
+```xml
+<error-page>
+    <error-code>400</error-code>
+    <location>/WEB-INF/vues/erreur/404.jsp</location>
+</error-page>
+<error-page>
+    <error-code>404</error-code>
+    <location>/WEB-INF/vues/erreur/404.jsp</location>
+</error-page>
+<error-page>
+    <error-code>403</error-code>
+    <location>/WEB-INF/vues/erreur/403.jsp</location>
+</error-page>
+<error-page>
+    <error-code>500</error-code>
+    <location>/WEB-INF/vues/erreur/500.jsp</location>
+</error-page>
+<error-page>
+    <exception-type>java.lang.Throwable</exception-type>
+    <location>/WEB-INF/vues/erreur/500.jsp</location>
+</error-page>
+```
 
-### Étapes de déploiement
+Les pages d'erreur sont conçues avec :
+- Design responsive et animations
+- Dégradés de couleurs distinctifs par code
+- Boutons de navigation (retour au dashboard, historique)
+- Détails techniques pour l'erreur 500 (en mode dev)
+- Lien de support
 
-#### 1. Cloner le projet
+---
+
+## 11. Mode sombre
+
+### Principe
+- Attribut HTML `data-theme="dark"` sur `<html>`
+- Variables CSS personnalisées dans `[data-theme="dark"]` (45+ variables redéfinies)
+- Overrides spécifiques pour sidebar, topbar, tableaux, formulaires, badges
+
+### Activation
+```js
+// Dans app.js - initDarkMode()
+const saved = localStorage.getItem('theme');
+if (saved === 'dark') apply(true);
+else if (saved === 'light') apply(false);
+else if (matchMedia('(prefers-color-scheme: dark)').matches) apply(true);
+```
+
+### Interface
+- Bouton toggle dans le topbar (icône `dark_mode` / `light_mode`)
+- Persistance via `localStorage`
+- Détection automatique du thème système
+
+---
+
+## 12. Dashboard enrichi + Chart.js
+
+### Endpoint API
+
+`ChartDataServlet` (`@WebServlet("/api/charts/*")`) expose 3 endpoints JSON :
+
+| Endpoint | Données |
+|---|---|
+| `GET /api/charts/moyennes-par-classe?trimestre=X` | Moyenne par classe |
+| `GET /api/charts/absences-par-mois` | Heures d'absence par mois |
+| `GET /api/charts/repartition-decision?trimestre=X` | Répartition Admis/Échec |
+
+### Graphiques affichés
+
+| Graphique | Type | Position |
+|---|---|---|
+| Moyennes par classe | Barre (chart.js) | Après les stats |
+| Répartition des décisions | Doughnut (chart.js) | Après les stats |
+| Absences mensuelles | Ligne (chart.js) | Remplace l'ancien graph CSS |
+
+### Données dashboard
+
+Le `DashboardServlet` charge :
+- Effectifs (total, garçons, filles)
+- Moyenne générale établissement
+- Taux d'absentéisme
+- Matière la plus critique
+- 6 dernières notes saisies
+- Absentéisme par classe
+
+---
+
+## 13. Export Excel (Apache POI)
+
+### Dépendance
+
+```xml
+<dependency>
+    <groupId>org.apache.poi</groupId>
+    <artifactId>poi-ooxml</artifactId>
+    <version>5.2.5</version>
+</dependency>
+```
+
+### Service
+
+`ExcelService` (com.lycee.service) :
+
+| Méthode | Description |
+|---|---|
+| `exportEleves(List<Eleve> eleves)` | Génère XLSX avec 8 colonnes (Matricule, Nom, Prénom, Date Naiss., Sexe, Classe, Tél. Parent, Email Parent) |
+| `exportBulletin(Eleve, BigDecimal, int, int, int, BigDecimal, List<NoteEleve>)` | Génère XLSX avec en-tête élève, tableau des notes et résumé (moyenne, rang) |
+
+### Endpoints
+
+| URL | Export |
+|---|---|
+| `GET /app/excel/eleves` | Tous les élèves en XLSX |
+| `GET /app/excel/bulletin?eleveId=X&trimestre=Y` | Bulletin individuel en XLSX |
+
+### Interface
+- Dropdown "Exporter" dans le dashboard (CSV + Excel)
+- Carte dédiée dans la page Documents PDF
+
+---
+
+## 14. Génération PDF (iText 7)
+
+### Dépendances
+
+iText 7 Core (kernel + layout) version 7.2.5.
+
+### Services
+
+`PdfService` génère 4 types de documents :
+
+| Méthode | Description |
+|---|---|
+| `genererBulletin(...)` | Bulletin trimestriel : identité, tableau des notes, moyenne, rang, appréciation, absences, décision |
+| `genererBulletinAnnuel(...)` | Bulletin annuel : récapitulatif des 3 trimestres, moyenne annuelle, rang annuel, décision |
+| `genererConvocation(...)` | Convocation parent : motif, date, QR code |
+| `genererTableauHonneur(...)` | Tableau d'honneur : top 10 élèves |
+
+### Endpoints PdfServlet
+
+| URL | Fonction |
+|---|---|
+| `GET /app/pdf/bulletin/?eleveId=X&trimestre=Y` | Bulletin trimestriel individuel |
+| `GET /app/pdf/bulletin-classe?classeId=X&trimestre=Y` | ZIP bulletins trimestriels d'une classe |
+| `GET /app/pdf/bulletin-annuel?eleveId=X` | Bulletin annuel individuel |
+| `GET /app/pdf/bulletin-annuel-classe?classeId=X` | ZIP bulletins annuels d'une classe |
+| `GET /app/pdf/tableau-honneur?classeId=X&trimestre=Y` | Tableau d'honneur |
+| `GET /app/pdf/convocation/?eleveId=X&motif=...&date=...` | Convocation parent |
+
+### Layout PDF
+
+`PdfLayoutHelper` fournit :
+- En-tête institutionnel (Ministère, Délégation, Établissement, devise)
+- Logo dynamique (filigrane optionnel)
+- Tableaux stylisés avec couleurs alternées
+- Formatage des notes, appréciations, décisions
+- Signatures (Censeur)
+- Watermark "BULLETIN ANNUEL" ou "BULLETIN TRIMESTRIEL"
+
+---
+
+## 15. Notifications SMS (Twilio)
+
+### Configuration
+
+Via `setenv.sh` ou variables d'environnement :
 ```bash
-git clone <url-du-repo>
-cd lycee-management
+TWILIO_ACCOUNT_SID=votre_sid
+TWILIO_AUTH_TOKEN=votre_token
+TWILIO_PHONE_NUMBER=+1234567890
 ```
 
-#### 2. Créer la base de données
-```sql
-CREATE DATABASE lycee_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+### Service
+
+`SmsService` utilise le SDK Twilio 9.3.0 :
+- `envoyerSmsBulletin(telephone, prenom, trimestre, moyenne, rang, effectif)`
+- `envoyerSmsRappelAbsence(telephone, prenom, nbAbsences)`
+- Simulation en mode dev (log au lieu d'envoyer)
+
+---
+
+## 16. Déploiement du projet
+
+### Structure du WAR
+
+```
+lycee.war
+├── index.jsp
+├── assets/               # Fichiers publics (logo)
+├── static/
+│   ├── css/
+│   │   ├── style.css     # Design system global + dark mode
+│   │   └── login.css     # Styles login responsive
+│   └── js/
+│       └── app.js        # Core JS (pagination, sidebar, dark mode, charts, dropdowns)
+├── WEB-INF/
+│   ├── web.xml           # Configuration déploiement + error pages
+│   ├── classes/
+│   │   └── com/lycee/    # Classes compilées
+│   ├── lib/              # Dépendances JAR
+│   ├── db.properties     # Connexion MySQL (hors WEB-INF via classpath)
+│   └── vues/             # JSP
 ```
 
-#### 3. Initialiser les tables et données
+### Déploiement manuel
+
 ```bash
-mysql -u root -proot lycee_db < schema.sql
-```
-
-#### 4. Configurer db.properties
-Le fichier `src/main/resources/db.properties` contient :
-```properties
-db.url=jdbc:mysql://localhost:3306/lycee_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Africa/Douala
-db.user=root
-db.password=root
-storage.dir=/home/kevin/lycee_storage
-```
-
-#### 5. Construire le WAR
-```bash
+# 1. Build
 mvn clean package -DskipTests
-```
-→ produit `target/lycee.war`
 
-#### 6. Déployer sur Tomcat
+# 2. Stop Tomcat
+/opt/apache-tomcat-11.0.21/bin/shutdown.sh
 
-Copier le WAR dans le répertoire webapps de Tomcat :
-```bash
+# 3. Déployer
+rm -rf /opt/apache-tomcat-11.0.21/webapps/lycee*
 cp target/lycee.war /opt/apache-tomcat-11.0.21/webapps/
-```
 
-#### 7. Démarrer Tomcat
-```bash
+# 4. Start Tomcat
 /opt/apache-tomcat-11.0.21/bin/startup.sh
 ```
 
-#### 8. Accéder à l'application
-```
-http://localhost:8080/lycee/login
-```
+### Script de déploiement (redeploy.sh)
 
-### Script de redéploiement automatique
+Le script `redeploy.sh` automatise ces étapes (Linux/Mac). Pour Windows, voir `redeploy.bat`.
 
-```bash
-./redeploy.sh
-```
-Ce script exécute : `mvn clean package` → arrête Tomcat → copie le WAR → démarre Tomcat.
+### Sessions
+
+- Durée : 30 minutes
+- Attributs session : `utilisateur`, `role`, `loginNom`
+- Invalidation automatique après inactivité
 
 ---
 
-## 11. Pourquoi les JSP sont dans WEB-INF
+## 17. Configuration effectuée
 
-Les fichiers JSP sont placés dans `/WEB-INF/vues/` pour des **raisons de sécurité** :
+### Fichiers de configuration
 
-| Sans WEB-INF | Avec WEB-INF |
+| Fichier | Rôle |
 |---|---|
-| `http://site/eleve/liste.jsp` → accessible directement | `http://site/WEB-INF/vues/eleve/liste.jsp` → **HTTP 404** |
-| Un visiteur peut contourner le contrôleur et accéder aux vues sans authentification | Les JSP sont uniquement accessibles via un **forward** interne du serveur (`req.getRequestDispatcher(...)`) |
-| Les données dynamiques (`${eleves}`) seraient vides car non préparées par le Servlet | Le Servlet prépare les données AVANT de forwarder vers la JSP |
+| `db.properties` | Connexion MySQL (URL, utilisateur, mot de passe) |
+| `setenv.sh` / `setenv.bat` | Variables d'environnement (Twilio, DB) |
+| `src/main/resources/db.properties` | Fichier versionné avec valeurs par défaut |
+| `.gitignore` | Exclut : `target/`, `.vscode/`, `*.bat`, `setenv.*`, `db.properties` (runtime) |
 
-**Règle :** Jamais de `sendRedirect` vers une JSP. Toujours un `forward` depuis un Servlet.
+### Paramètres établissement
 
----
-
-## 12. Configuration effectuée
-
-### web.xml (Jakarta EE 6.0)
-
-```xml
-<web-app version="6.0" ...>
-    <display-name>Lycee Management System</display-name>
-    <!-- Pages d'erreur personnalisées -->
-    <error-page>
-        <error-code>404</error-code>
-        <location>/WEB-INF/vues/erreur/404.jsp</location>
-    </error-page>
-</web-app>
-```
-
-Le `web.xml` a été migré de Servlet 2.3 (D TD) vers Jakarta EE 6.0, ce qui a corrigé l'Expression Language (EL) qui était désactivé par défaut dans les anciennes versions.
-
-### Schéma MySQL (schema.sql)
-
-- 7 tables : `classe`, `eleve`, `note_eleve`, `absence`, `utilisateurs`, `parametre`, `notification`
-- Contraintes : clés étrangères avec `ON DELETE CASCADE`, `CHECK` contraintes
-- Données de démo : 18 classes, 265 élèves, 216 notes (Tle C), 3 utilisateurs
-
-### Stockage fichiers
-
-- Photos élèves : `{storage.dir}/photos/`
-- Assets (logo) : `{storage.dir}/assets/`
-- Configurable via `storage.dir` dans `db.properties`
-
-### Sécurité
-
-- Mots de passe hashés en BCrypt (JBCrypt 0.4)
-- Filtre d'authentification par rôle (AuthFilter)
-- En-têtes HTTP de sécurité (SecurityHeadersFilter)
-- PreparedStatement anti-injection SQL
-- Upload de photos sécurisé (UUID + validation extension)
-
-### SMS Twilio
-
-- SDK Twilio 9.3.0 configuré
-- Credentials lus depuis les variables d'environnement (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_FROM`)
-- Fallback : simulation dans les logs si non configuré
-
-### Session HTTP
-
-- Durée : 30 minutes d'inactivité
-- Attributs de session : `utilisateur`, `role`, `loginNom`
+Table `parametre` avec colonnes fixes :
+`etablissement, annee_scolaire, logo_filename, devise, ville, telephone, email, site_web, republique, ministere, delegation, entete_pdf, filigrane_logo`
 
 ---
 
-## 13. Dépendances (pom.xml)
+## 18. Dépendances (pom.xml)
 
 | Dépendance | Version | Usage |
 |---|---|---|
-| **Jakarta EE API** | 11.0.0 | Spécifications Jakarta EE (Servlet, JSP, etc.) |
-| **Servlet API** | 6.1.0 | API des Servlets (Tomcat 11) |
-| **JSTL API** | 3.0.0 | Tags JSP standard (boucles, conditions) |
-| **JSTL Impl (Glassfish)** | 3.0.1 | Implémentation des tags JSTL |
-| **MySQL Connector** | 8.4.0 | Pilote JDBC pour MySQL |
-| **iText 7 Core** | 7.2.5 | Génération de PDF (bulletins, convocations) |
-| **iText 7 Kernel** | 7.2.5 | Noyau iText PDF |
-| **iText 7 Layout** | 7.2.5 | Mise en page PDF |
-| **JBCrypt** | 0.4 | Hachage BCrypt des mots de passe |
-| **Twilio SDK** | 9.3.0 | Envoi de SMS (notifications parents) |
-| **Commons FileUpload** | 1.5 | Upload de fichiers (photos élèves, logo) |
-| **Commons IO** | 2.15.1 | Utilitaires d'entrée/sortie |
-| **SLF4J API** | 2.0.9 | Interface de logging |
-| **Logback Classic** | 1.4.14 | Implémentation de logging |
+| Jakarta EE API | 11.0.0 | Jakarta Servlet, JSP, EL |
+| Jakarta Servlet API | 6.1.0 | Servlets |
+| JSTL API + Impl | 3.0.0 / 3.0.1 | Tags JSTL (`c:forEach`, `c:if`) |
+| MySQL Connector | 8.4.0 | Connexion MySQL |
+| iText 7 Core | 7.2.5 | Génération PDF |
+| JBCrypt | 0.4 | Hash mots de passe |
+| Twilio SDK | 9.3.0 | SMS |
+| Apache POI | 5.2.5 | Export Excel |
+| Commons FileUpload | 1.5 | Upload photo |
+| Commons IO | 2.15.1 | Utilitaires IO |
+| SLF4J API | 2.0.9 | Logging |
+| Logback Classic | 1.4.14 | Implémentation logs |
 
-### Plugins Maven
+---
 
-| Plugin | Version | Usage |
+## 19. Base de données
+
+### Tables
+
+| Table | Rôle | Colonnes principales |
 |---|---|---|
-| `maven-compiler-plugin` | 3.11.0 | Compilation Java 25 |
-| `maven-war-plugin` | 3.4.0 | Packaging WAR (pas de web.xml requis) |
+| `classe` | Classes | id, niveau, serie, salle, annee_scolaire |
+| `eleve` | Élèves | id, matricule, nom, prenom, date_naissance, sexe, classe_id, tel_parent, email_parent, photo_filename, salle |
+| `note_eleve` | Notes | id, eleve_id, matiere, coefficient, notes_valeur, trimestre, prof_saisie |
+| `absence` | Absences | id, eleve_id, date_absence, duree_heures, justifiee, motif |
+| `utilisateurs` | Utilisateurs | id, login, password_hache, role, nom_complet |
+| `parametre` | Paramètres | id + 13 colonnes de configuration |
+| `notification` | Notifications | id, type, message, destinataire_id, lu, date_creation |
 
----
-
-## 14. Base de données
-
-### Modèle conceptuel
+### Relations
 
 ```
-┌──────────────┐       ┌──────────────────┐
-│   classe     │       │    eleve         │
-├──────────────┤       ├──────────────────┤
-│ id (PK)      │◄──────│ id (PK)          │
-│ niveau       │ 1,N   │ matricule        │
-│ serie        │       │ prenom           │
-│ nom_complet  │       │ nom              │
-│ salle        │       │ date_naissance   │
-│ prof_principal│      │ sexe             │
-│ effectif_max │       │ classe_id (FK)───┘
-│ annee_scolaire│      │ tel_parent       │
-└──────────────┘       │ email_parent     │
-                       │ photo_filename   │
-         ┌─────────────┴──────────────┐
-         │                            │
-┌────────▼──────┐          ┌─────────▼───────┐
-│  note_eleve   │          │    absence      │
-├───────────────┤          ├─────────────────┤
-│ id (PK)       │          │ id (PK)         │
-│ eleve_id (FK) │          │ eleve_id (FK)   │
-│ matiere       │          │ date_absence    │
-│ coefficient   │          │ duree_heures    │
-│ notes_valeur  │          │ matiere         │
-│ trimestre     │          │ justifiee       │
-│ prof_saisie   │          │ motif           │
-└───────────────┘          └─────────────────┘
+classe 1──N eleve
+eleve  1──N note_eleve
+eleve  1──N absence
+```
 
-┌────────────────┐      ┌──────────────────┐
-│  utilisateurs  │      │   parametre      │
-├────────────────┤      ├──────────────────┤
-│ id (PK)        │      │ id (PK) = 1      │
-│ login (UNIQUE) │      │ etablissement    │
-│ password_hache │      │ logo_filename    │
-│ role (ENUM)    │      │ devise           │
-└────────────────┘      │ ville            │
-                        │ telephone        │
-┌────────────────┐      │ email            │
-│  notification  │      │ ...              │
-├────────────────┤      └──────────────────┘
-│ id (PK)        │
-│ role_cible     │
-│ message        │
-│ lien           │
-│ lue            │
-│ date_creation  │
-└────────────────┘
+### Requêtes notables
+
+**Moyenne pondérée d'un élève :**
+```sql
+SELECT SUM(notes_valeur * coefficient) / SUM(coefficient) AS moyenne
+FROM note_eleve WHERE eleve_id=? AND trimestre=?
+```
+
+**Rang d'un élève (window function) :**
+```sql
+SELECT rang FROM (
+    SELECT eleve_id, RANK() OVER (ORDER BY SUM(notes_valeur*coefficient)/SUM(coefficient) DESC) AS rang
+    FROM note_eleve WHERE trimestre=? GROUP BY eleve_id
+) sub WHERE eleve_id=?
+```
+
+**Moyenne annuelle (moyenne des trimestres) :**
+```sql
+SELECT AVG(sub.moy) AS moyenne_annuelle FROM (
+    SELECT SUM(notes_valeur * coefficient) / SUM(coefficient) AS moy
+    FROM note_eleve WHERE eleve_id=? GROUP BY trimestre
+) sub
+```
+
+**Répartition des décisions :**
+```sql
+SELECT decision, COUNT(*) AS count FROM (
+    SELECT eleve_id,
+        CASE WHEN SUM(notes_valeur * coefficient) / SUM(coefficient) >= 10
+             THEN 'Admis' ELSE 'Échec' END AS decision
+    FROM note_eleve WHERE trimestre=? GROUP BY eleve_id
+) sub GROUP BY decision
 ```
 
 ---
 
-## 15. Schéma architectural complet
+## 20. Schéma architectural complet
 
 ```
-                    ┌──────────┐
-                    │ Browser  │
-                    └────┬─────┘
-                         │ HTTP
-                    ┌────▼─────┐
-                    │  Tomcat  │
-                    │  11.0.21 │
-                    └────┬─────┘
-                         │
-              ┌──────────┼──────────┐
-              │          │          │
-         ┌────▼───┐ ┌───▼────┐ ┌───▼────┐
-         │Filters │ │Servlets│ │ Assets │
-         │Auth    │ │ /app/* │ │ /assets│
-         │Security│ │ /login │ │   /*   │
-         └────┬───┘ └───┬────┘ └────────┘
-              │         │
-              │   ┌─────▼──────────┐
-              │   │   Service      │
-              │   │  Layer         │
-              │   │ PdfService     │
-              │   │ SmsService     │
-              │   │ ParametreSvc   │
-              │   └─────┬──────────┘
-              │         │
-              │   ┌─────▼──────────┐
-              │   │   DAO Layer    │
-              │   │ (Interface +   │
-              │   │  Impl)         │
-              │   └─────┬──────────┘
-              │         │ JDBC
-              │   ┌─────▼──────────┐
-              │   │   MySQL 8.4    │
-              │   │   lycee_db     │
-              │   └────────────────┘
-              │
-         ┌────▼──────────────────────┐
-         │     Vues JSP (WEB-INF)    │
-         │  header.jsp → footer.jsp  │
-         │  eleve/liste.jsp          │
-         │  eleve/form.jsp           │
-         │  login.jsp                │
-         │  ...                      │
-         └───────────────────────────┘
+                   ┌─────────────────────────────────────┐
+                   │          Navigateur Client           │
+                   │    (responsive, dark mode ready)     │
+                   └────────────────┬────────────────────┘
+                                    │ HTTP(S)
+                                    ▼
+                   ┌─────────────────────────────────────┐
+                   │           Apache Tomcat 11           │
+                   │          (Servlet Container)          │
+                   └────────────────┬────────────────────┘
+                                    │
+                    ┌───────────────┴───────────────┐
+                    │           AuthFilter            │
+                    │        @WebFilter("/app/*")     │
+                    │   Vérifie session + rôle        │
+                    └───────────────┬───────────────┘
+                                    │
+                    ┌───────────────┴───────────────┐
+                    │         Dispatcher             │
+                    │   Router vers les servlets     │
+                    └──────┬──────┬──────┬──────┬───┘
+                           │      │      │      │
+              ┌────────────┘      │      │      └──────────┐
+              ▼                   ▼      ▼                  ▼
+      ┌─────────────┐   ┌─────────────┐   ┌──────────────┐   ┌──────────────┐
+      │ EleveServlet│   │ NoteServlet │   │ PdfServlet   │   │ ExcelServlet │
+      │ ClasseServlet│  │AbsenceServlet│  │ ...          │   │ ...          │
+      └──────┬──────┘   └──────┬──────┘   └──────┬───────┘   └──────┬───────┘
+             │                 │                  │                  │
+             ▼                 ▼                  ▼                  ▼
+      ┌───────────────────────────────────────────────────────────────────┐
+      │                       DAO Layer (JDBC)                            │
+      │  EleveDAOImpl │ NoteDAOImpl │ AbsenceDAOImpl │ ClasseDAOImpl ...  │
+      └─────────────────────────────┬─────────────────────────────────────┘
+                                    │
+                                    ▼
+      ┌───────────────────────────────────────────────────────────────────┐
+      │                       MySQL 8.4 Database                          │
+      │  tables: eleve, classe, note_eleve, absence, utilisateurs,        │
+      │          parametre, notification                                  │
+      └───────────────────────────────────────────────────────────────────┘
 ```
 
-### Flux d'une requête typique
+### Flux de données pour la génération PDF
 
 ```
-1. Navigateur → GET http://localhost:8080/lycee/app/eleves
-2. Tomcat intercepte → vérifie le contexte "/lycee"
-3. SecurityHeadersFilter s'exécute (ajoute en-têtes HTTP)
-4. AuthFilter s'exécute (vérifie session, droits)
-5. EleveServlet.doGet() est appelé
-6. EleveServlet appelle EleveDAO.findAllPaginated(...)
-7. EleveDAO construit une requête SQL avec PreparedStatement
-8. MySQL exécute la requête, retourne les résultats
-9. EleveDAO transforme ResultSet en objets Eleve
-10. EleveServlet stocke la liste dans req.setAttribute("eleves", ...)
-11. EleveServlet forwarde vers /WEB-INF/vues/eleve/liste.jsp
-12. La JSP génère le HTML avec JSTL + EL
-13. Tomcat renvoie la réponse HTTP au navigateur
+Utilisateur → Documents (JSP) → PdfServlet → NoteDAO / AbsenceDAO / EleveDAO
+                                                         ↓
+                                                    Données brutes
+                                                         ↓
+                                                    PdfService (iText 7)
+                                                         ↓
+                                                    byte[] PDF
+                                                         ↓
+                                                    Response → Download
 ```
 
----
-
-## Prompt pour Gemini (pour générer un document similaire)
+### Flux de données pour les graphiques dashboard
 
 ```
-Tu es développeur Java spécialisé Jakarta EE. Rédige un document
-technique complet pour un projet web Java nommé "Lycée Management System".
-
-L'application utilise :
-- Java 25, Jakarta EE 11 (Servlets 6.1, JSTL 3.0)
-- Apache Tomcat 11.0.21
-- MySQL 8.4
-- Maven 3.9 (packaging WAR)
-
-Architecture : MVC (Modèle-Vue-Contrôleur)
-- Contrôleur : Servlets avec annotations @WebServlet
-- Vue : JSP dans /WEB-INF/vues/ avec JSTL + EL (Expression Language)
-- Modèle : Classes POJO + DAO (interface + impl) + Service Layer
-- Filtres : AuthFilter (authentification par rôle) + SecurityHeadersFilter
-- DTO : EleveSearchCriteria, NoteSearchCriteria (critères de recherche)
-
-Fonctionnalités :
-- CRUD élèves, classes, notes, absences, utilisateurs
-- Pagination + recherche
-- Upload photo élève et logo établissement
-- Génération PDF (bulletins, convocations, tableaux d'honneur) via iText 7
-- Envoi SMS via Twilio SDK 9.3.0
-- Notifications internes
-- 3 rôles : Admin, Censeur, Surveillant
-
-Sécurité :
-- PreparedStatement anti-injection SQL (try-with-resources)
-- BCrypt pour mots de passe (JBCrypt 0.4)
-- Filtre d'authentification et autorisation par rôle
-- En-têtes HTTP de sécurité (X-Frame-Options, etc.)
-- JSP dans WEB-INF (pas d'accès direct)
-- Sessions HTTP (30 min d'inactivité)
-
-Base de données (MySQL) :
-- 7 tables : classe, eleve, note_eleve, absence, utilisateurs, parametre, notification
-- Données de démo : 18 classes, 265 élèves, 216 notes, 3 utilisateurs
-- Schema.sql avec CREATE TABLE + INSERT + contraintes
-
-Configuration :
-- web.xml Jakarta EE 6.0 (pages d'erreur 404/403/500)
-- db.properties pour connexion DB et stockage fichiers
-- Variables d'environnement Twilio
-- Aucun framework Spring — Jakarta EE pure
-- CSS : thème maison + Material Symbols + Tailwind (CDN)
-
-Le document doit expliquer clairement :
-1. Qu'est-ce que Jakarta EE et quel est son rôle
-2. Qu'est-ce qu'un Servlet, son cycle de vie (@WebServlet, doGet/doPost)
-3. Qu'est-ce qu'une JSP, syntaxe EL/JSTL, différence avec HTML statique
-4. Le pattern MVC appliqué au projet
-5. Le rôle et l'utilité des DAO (avec exemple de code)
-6. Le rôle et l'utilité des DTO
-7. Le rôle des filtres (Filters)
-8. Pourquoi les JSP sont dans WEB-INF (sécurité)
-9. Comment déployer (WAR → Tomcat → MySQL)
-10. Toutes les dépendances Maven et leur utilité
-11. Les configuration clés (web.xml, db.properties, variables env)
-12. Schéma de la base de données
-13. Exemple de flux complet (requête → servlet → DAO → JSP → réponse)
-
-Écris en français, dans un style clair et pédagogique destiné à un
-étudiant en informatique qui doit présenter le projet devant un jury.
-Utilise des schémas textuels, des tableaux et des extraits de code
-pour illustrer chaque concept.
+Dashboard → ChartDataServlet → NoteDAO / AbsenceDAO
+                                        ↓
+                                    JSON (via StringBuilder)
+                                        ↓
+                                    Chart.js (côté client)
+                                        ↓
+                                    Canvases rendus
 ```
 
----
+### Contrôle d'accès par rôle
 
-*Document généré le 09/06/2026 — Lycée Management System v1.0.0*
+| Ressource | Admin | Censeur | Surveillant |
+|---|---|---|---|
+| Dashboard | ✅ | ✅ | ✅ |
+| Élèves (liste) | ✅ | ✅ | ✅ |
+| Élèves (CRUD) | ✅ | ✅ | ❌ |
+| Notes | ✅ | ✅ | ❌ |
+| Absences | ✅ | ✅ | ✅ |
+| Documents PDF | ✅ | ✅ | ❌ |
+| Utilisateurs | ✅ | ❌ | ❌ |
+| Paramètres | ✅ | ❌ | ❌ |
+| Export Excel | ✅ | ✅ | ❌ |
+

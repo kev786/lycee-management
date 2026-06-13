@@ -163,6 +163,7 @@ public class LoginServlet extends HttpServlet {
             case "admin" -> Constants.ROLE_ADMIN;
             case "censeur" -> Constants.ROLE_CENSEUR;
             case "surveillant" -> Constants.ROLE_SURVEILLANT;
+            case "professeur" -> Constants.ROLE_PROFESSEUR;
             default -> null;
         };
     }

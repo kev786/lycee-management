@@ -95,7 +95,7 @@ CREATE TABLE utilisateurs (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     login           VARCHAR(60)  NOT NULL UNIQUE,
     password_hache  VARCHAR(255) NOT NULL COMMENT 'BCrypt hash',
-    role            ENUM('Admin','Censeur','Surveillant') NOT NULL
+    role            ENUM('Admin','Censeur','Surveillant','Professeur') NOT NULL
 ) ENGINE = InnoDB;
 
 -- ============================================================
@@ -672,9 +672,11 @@ INSERT INTO note_eleve (eleve_id, matiere, coefficient, notes_valeur, trimestre,
 -- 5. Utilisateurs (hash BCrypt pour "Password1!")
 -- ---------------------------------------------------------
 INSERT INTO utilisateurs (login, password_hache, role) VALUES
-    ('admin',         '$2a$12$nLWr8kHeY8X8f1yagBu1y.vNnm9WomsgD2MFn/p78WE8OMMjUIQqG', 'Admin'),
-    ('censeur',       '$2a$12$C6PFTKPwyBT/aieyhkCKO.HId3mOiTygsv1v.3jvZHU/96Z9OrVfi', 'Censeur'),
-    ('surveillant',   '$2a$12$6IKzDXy5u7pfXBPRrc4xieVs38JPu9sb2gG.6gnZ2hiWWAb/6SVtO', 'Surveillant');
+    ('admin',         '$2a$12$KmGpGc14gcKuYXg/GIz35Oh6vxKBNG9FmGlqls4GClBkPne3qvf1C', 'Admin'),
+    ('censeur',       '$2a$12$KooGmHTQ/ARfgSIsxvDw0uslwUadeBPCa.T1ZwfrWx25JIjR2b4QC', 'Censeur'),
+    ('professeur',    '$2a$12$U.HkfTPssXs/SlLcPuFBiOpg97aZWvkJLMzJusvzR0W81jHJ7CUiG', 'Professeur'),
+    ('surveillant',   '$2a$12$1rjJ2PVrwyc/bpo5DogHQ.LViCvNpNb.9VarKMOHbqiB5pPwaW0HS', 'Surveillant');
+
 
 -- ---------------------------------------------------------
 -- 6. Paramètres de l'établissement (ligne unique)
@@ -699,3 +701,6 @@ VALUES (
     FALSE
 )
 ON DUPLICATE KEY UPDATE id = id;
+
+
+

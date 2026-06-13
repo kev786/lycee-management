@@ -70,4 +70,5 @@ public final class Constants {
     public static final String ROLE_ADMIN           = "Admin";
     public static final String ROLE_CENSEUR         = "Censeur";
     public static final String ROLE_SURVEILLANT     = "Surveillant";
+    public static final String ROLE_PROFESSEUR      = "Professeur";
 }

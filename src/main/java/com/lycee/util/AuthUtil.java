@@ -18,8 +18,16 @@ public final class AuthUtil {
         return Constants.ROLE_CENSEUR.equals(role);
     }
 
+    public static boolean isProfesseur(String role) {
+        return Constants.ROLE_PROFESSEUR.equals(role);
+    }
+
     public static boolean isAdminOrCenseur(String role) {
         return isAdmin(role) || isCenseur(role);
+    }
+
+    public static boolean isAdminOrCenseurOrProfesseur(String role) {
+        return isAdmin(role) || isCenseur(role) || isProfesseur(role);
     }
 
     public static String getRole(HttpServletRequest req) {

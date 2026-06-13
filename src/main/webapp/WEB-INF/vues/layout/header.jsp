@@ -55,7 +55,7 @@
                     <span class="material-symbols-outlined nav-icon">class</span>
                     <span class="nav-label">Classes</span>
                 </a>
-                <c:if test="${role == 'Admin' || role == 'Censeur'}">
+                <c:if test="${role == 'Admin' || role == 'Censeur' || role == 'Professeur'}">
                     <a href="${pageContext.request.contextPath}/app/notes/"
                        class="nav-link ${param.active == 'notes' ? 'active' : ''}">
                         <span class="material-symbols-outlined nav-icon">grading</span>

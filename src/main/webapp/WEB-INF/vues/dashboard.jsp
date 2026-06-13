@@ -26,6 +26,8 @@
                     </a>
                 </div>
             </div>
+        </c:if>
+        <c:if test="${role == 'Admin' || role == 'Censeur' || role == 'Professeur'}">
             <a href="${pageContext.request.contextPath}/app/notes/nouveau" class="btn btn-primary btn-sm" style="text-decoration:none;">
                 <span class="material-symbols-outlined">add</span>
                 Nouvelle saisie
@@ -121,7 +123,7 @@
 </div>
 
 <div style="display:grid; grid-template-columns: 2fr 1fr; gap:24px;">
-    <c:if test="${role == 'Admin' || role == 'Censeur'}">
+    <c:if test="${role == 'Admin' || role == 'Censeur' || role == 'Professeur'}">
     <div class="card" style="padding:0; overflow:hidden;">
         <div style="padding:20px 24px; border-bottom:1px solid var(--outline-variant); display:flex; justify-content:space-between; align-items:center;">
             <div>
@@ -176,6 +178,17 @@
         <p style="font-size:13px; color:var(--on-surface-variant); margin-bottom:20px;">En tant que surveillant, vous gérez principalement les absences et consultez les effectifs.</p>
         <div style="display:flex; flex-direction:column; gap:10px;">
             <a href="${pageContext.request.contextPath}/app/absences/" class="btn btn-primary" style="text-decoration:none; justify-content:center;">Gérer les absences</a>
+            <a href="${pageContext.request.contextPath}/app/eleves/" class="btn btn-ghost" style="text-decoration:none; justify-content:center;">Consulter les élèves</a>
+            <a href="${pageContext.request.contextPath}/app/classes/" class="btn btn-ghost" style="text-decoration:none; justify-content:center;">Consulter les classes</a>
+        </div>
+    </div>
+    </c:if>
+    <c:if test="${role == 'Professeur'}">
+    <div class="card" style="padding:24px;">
+        <h3 style="font-size:18px; font-weight:700; color:var(--primary); margin-bottom:12px;">Accès rapide</h3>
+        <p style="font-size:13px; color:var(--on-surface-variant); margin-bottom:20px;">En tant que professeur, vous pouvez saisir et consulter les notes des élèves.</p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <a href="${pageContext.request.contextPath}/app/notes/" class="btn btn-primary" style="text-decoration:none; justify-content:center;">Gérer les notes</a>
             <a href="${pageContext.request.contextPath}/app/eleves/" class="btn btn-ghost" style="text-decoration:none; justify-content:center;">Consulter les élèves</a>
             <a href="${pageContext.request.contextPath}/app/classes/" class="btn btn-ghost" style="text-decoration:none; justify-content:center;">Consulter les classes</a>
         </div>

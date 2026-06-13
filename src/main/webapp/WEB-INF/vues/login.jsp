@@ -79,6 +79,7 @@
                         <select class="input-field" id="role" name="role" style="appearance: none;">
                             <option value="admin">Administrateur</option>
                             <option value="censeur">Censeur</option>
+                            <option value="professeur">Professeur</option>
                             <option value="surveillant">Surveillant</option>
                         </select>
                         <span class="material-symbols-outlined" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--outline); pointer-events: none;">expand_more</span>
