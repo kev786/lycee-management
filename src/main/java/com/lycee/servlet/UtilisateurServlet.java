@@ -7,7 +7,6 @@ import com.lycee.util.AuthUtil;
 import com.lycee.util.Constants;
 import com.lycee.util.ValidationUtil;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@WebServlet("/app/utilisateurs/*")
 public class UtilisateurServlet extends HttpServlet {
 
     private static final String FORM_JSP = "/WEB-INF/vues/utilisateur/form.jsp";

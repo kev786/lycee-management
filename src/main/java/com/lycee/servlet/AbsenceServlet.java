@@ -9,7 +9,6 @@ import com.lycee.util.Constants;
 import com.lycee.util.DateUtil;
 import com.lycee.util.ValidationUtil;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 
 import java.io.IOException;
@@ -18,7 +17,6 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@WebServlet("/app/absences/*")
 public class AbsenceServlet extends HttpServlet {
 
     private static final int DEFAULT_PAGE_SIZE = 15;

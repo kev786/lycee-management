@@ -2,7 +2,6 @@ package com.lycee.servlet;
 
 import com.lycee.util.Constants;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,7 +12,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /** Sert les assets institutionnels (logo) stockés hors webapp. */
-@WebServlet("/assets/*")
 public class AssetServlet extends HttpServlet {
 
     private static final String SAFE_FILENAME = "^[a-zA-Z0-9\\-]+\\.(png|jpg|jpeg|gif|webp)$";

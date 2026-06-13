@@ -9,7 +9,6 @@ import com.lycee.model.NoteEleve;
 import com.lycee.service.ExcelService;
 import com.lycee.util.AuthUtil;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,7 +17,6 @@ import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.util.List;
 
-@WebServlet("/app/excel/*")
 public class ExcelServlet extends HttpServlet {
 
     private final transient ExcelService excelService = new ExcelService();

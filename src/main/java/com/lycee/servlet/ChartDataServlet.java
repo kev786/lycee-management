@@ -3,7 +3,6 @@ package com.lycee.servlet;
 import com.lycee.dao.*;
 import com.lycee.dao.impl.*;
 import com.lycee.util.DateUtil;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,7 +12,6 @@ import java.time.Month;
 import java.time.format.TextStyle;
 import java.util.*;
 
-@WebServlet("/api/charts/*")
 public class ChartDataServlet extends HttpServlet {
 
     private final transient NoteDAO noteDAO = new NoteDAOImpl();

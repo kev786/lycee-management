@@ -4,7 +4,6 @@ import com.lycee.dao.*;
 import com.lycee.dao.impl.*;
 import com.lycee.util.DateUtil;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -15,7 +14,6 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@WebServlet("/app/dashboard")
 public class DashboardServlet extends HttpServlet {
 
     private static final Logger LOG = LoggerFactory.getLogger(DashboardServlet.class);

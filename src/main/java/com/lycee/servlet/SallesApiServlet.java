@@ -2,7 +2,6 @@ package com.lycee.servlet;
 
 import com.lycee.dao.ClasseDAO;
 import com.lycee.dao.impl.ClasseDAOImpl;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,7 +13,6 @@ import java.util.List;
  * Endpoint JSON pour récupérer les salles disponibles selon niveau+serie.
  * GET /api/salles?niveau=Tle&serie=C  → ["Salle A", "Salle B"]
  */
-@WebServlet("/api/salles")
 public class SallesApiServlet extends HttpServlet {
 
     private final transient ClasseDAO classeDAO = new ClasseDAOImpl();

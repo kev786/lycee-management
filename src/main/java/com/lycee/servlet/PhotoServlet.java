@@ -2,7 +2,6 @@ package com.lycee.servlet;
 
 import com.lycee.util.Constants;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,7 +14,6 @@ import java.nio.file.Paths;
 /**
  * Sert les photos d'élèves stockées hors webapp ({@link Constants#UPLOAD_DIR_PHOTOS}).
  */
-@WebServlet("/app/photos/*")
 public class PhotoServlet extends HttpServlet {
 
     private static final String SAFE_FILENAME = "^[a-zA-Z0-9\\-]+\\.(jpg|jpeg|png|gif|webp)$";

@@ -10,7 +10,6 @@ import com.lycee.util.Constants;
 import com.lycee.util.ValidationUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 
 import java.io.*;
@@ -20,7 +19,6 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@WebServlet("/app/eleves/*")
 @MultipartConfig(
     fileSizeThreshold = 1024 * 1024,      // 1 MB seuil mémoire
     maxFileSize       = 2 * 1024 * 1024,  // 2 MB max par fichier

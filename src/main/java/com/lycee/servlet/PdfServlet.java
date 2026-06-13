@@ -9,7 +9,6 @@ import com.lycee.service.SmsService;
 import com.lycee.util.AuthUtil;
 import com.lycee.util.DateUtil;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 
 import java.io.ByteArrayOutputStream;
@@ -22,7 +21,6 @@ import java.util.zip.ZipOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@WebServlet("/app/pdf/*")
 public class PdfServlet extends HttpServlet {
 
     private static final String CONTENT_TYPE_PDF = "application/pdf";

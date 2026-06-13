@@ -6,7 +6,6 @@ import com.lycee.model.*;
 import com.lycee.util.Constants;
 import com.lycee.util.ValidationUtil;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 
 import java.io.IOException;
@@ -16,7 +15,6 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@WebServlet("/app/notes/*")
 public class NoteServlet extends HttpServlet {
 
     private static final int DEFAULT_PAGE_SIZE = 15;
